@@ -22,9 +22,6 @@ docker compose exec php php import.php
 
 Package installation:
 docker compose exec php composer require --dev phpunit/phpunit
-or
-make cli
-composer require --dev phpunit/phpunit
 
 Test:
 make test
