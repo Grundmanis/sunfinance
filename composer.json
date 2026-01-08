@@ -1,0 +1,12 @@
+{
+  "name": "sunfinance/homework",
+  "description": "fun",
+  "type": "project",
+  "autoload": {
+    "psr-4": {
+      "Sunfinance\\Homework\\": "app/src/"
+    }
+  },
+  "minimum-stability": "stable",
+  "require-dev": {}
+}

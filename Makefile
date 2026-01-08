@@ -12,3 +12,6 @@ cli:
 
 import:
 	docker compose exec php php import.php
+
+test:
+	docker compose exec php vendor/bin/phpunit
