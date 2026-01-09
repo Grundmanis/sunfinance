@@ -2,7 +2,9 @@
 
 namespace App\Commands;
 
+use App\Contracts\Loggers\LoggerInterface;
 use App\Contracts\Services\CsvReaderInterface;
+use App\Logger\PaymentImportLogger;
 use App\Normalization\Csv\PaymentNormalizer;
 use App\Validation\PaymentValidator;
 use Symfony\Component\Console\Command\Command;
@@ -26,13 +28,15 @@ class PaymentImportCommand extends Command
     private PaymentValidator $validator;
     private PaymentNormalizer $normalizer;
     private CsvReaderInterface $csvReader;
+    private LoggerInterface $logger;
 
-    public function __construct(PaymentValidator $validator, PaymentNormalizer $normalizer, CsvReaderInterface $csvReader)
+    public function __construct(PaymentValidator $validator, PaymentNormalizer $normalizer, CsvReaderInterface $csvReader, PaymentImportLogger $logger)
     {
         parent::__construct();
         $this->validator = $validator;
         $this->normalizer = $normalizer;
         $this->csvReader = $csvReader;
+        $this->logger = $logger;
     }
 
     protected function configure(): void
@@ -45,11 +49,11 @@ class PaymentImportCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $this->logger->info('Payment import started.');
         $filePath = $input->getArgument('file');
 
         if (!file_exists($filePath)) {
-            // TODO: move to logs
-            $output->writeln("<error>File not found: $filePath</error>");
+            $this->logger->warning("File not found: $filePath");
             return PaymentImportCommand::FILE_NOT_EXISTS;
         }
 
@@ -62,33 +66,37 @@ class PaymentImportCommand extends Command
 
             if (!$validationResult->isValid()) {
                 foreach ($validationResult->getErrors() as $error) {
-                    // log errors here
-                    $output->writeln("<error>Field: {$error['propertyPath']}, Value: {$error['invalidValue']}, Message: {$error['message']}</error>");
-                    // TODO: refactor
-                    switch ($error['propertyPath']) {
-                        case 'refId':
-                            if ($error['message'] === 'Duplicate entry found for reference.') {
-                                return PaymentImportCommand::DUPLICATE;
-                            } else {
-                                return PaymentImportCommand::MISSING_REF;
-                            }
-                        case 'amount':
-                            return PaymentImportCommand::NEGATIVE_AMOUNT;
-                        case 'paymentDate':
-                            return PaymentImportCommand::INVALID_DATE;
-                        case 'description':
-                            return PaymentImportCommand::MISSING_LOAN_NUMBER;
-                            break;
-                        case 'loanNumber':
-                            return PaymentImportCommand::MISSING_LOAN_NUMBER;
-                            break;
-                    }
-                    return PaymentImportCommand::UNKNOWN_ERROR;
+                    $this->logger->warning('Validation error', [
+                        'field' => $error['propertyPath'],
+                        'value' => $error['invalidValue'],
+                        'message' => $error['message'],
+                    ]);
+                    return $this->mapErrorToExitCode($error);
                 }
             }
         }
 
         $output->writeln('<info>All records are valid!</info>');
         return PaymentImportCommand::SUCCESS;
+    }
+
+    // TODO: move out
+    private function mapErrorToExitCode(array $error): int
+    {
+        switch ($error['propertyPath']) {
+            case 'refId':
+                return $error['message'] === 'Duplicate entry found for reference.'
+                    ? PaymentImportCommand::DUPLICATE
+                    : PaymentImportCommand::MISSING_REF;
+            case 'amount':
+                return PaymentImportCommand::NEGATIVE_AMOUNT;
+            case 'paymentDate':
+                return PaymentImportCommand::INVALID_DATE;
+            case 'description':
+            case 'loanNumber':
+                return PaymentImportCommand::MISSING_LOAN_NUMBER;
+            default:
+                return PaymentImportCommand::UNKNOWN_ERROR;
+        }
     }
 }

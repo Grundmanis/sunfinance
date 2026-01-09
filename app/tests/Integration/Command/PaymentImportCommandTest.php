@@ -35,8 +35,9 @@ class PaymentImportCommandTest extends TestCase
         $csvReader = new CsvReader();
         $normalizer = new PaymentNormalizer(new \App\Transformers\DateTransformer());
         $validator = new PaymentValidator();
+        $logger = $this->createMock(\App\Logger\PaymentImportLogger::class);
 
-        $command = new PaymentImportCommand($validator, $normalizer, $csvReader);
+        $command = new PaymentImportCommand($validator, $normalizer, $csvReader, $logger);
 
         $input = new ArrayInput(['file' => $this->testCsvPath]);
         $output = new BufferedOutput();
@@ -54,8 +55,9 @@ class PaymentImportCommandTest extends TestCase
         $csvReader = new CsvReader();
         $normalizer = new PaymentNormalizer(new \App\Transformers\DateTransformer());
         $validator = new PaymentValidator();
+        $logger = $this->createMock(\App\Logger\PaymentImportLogger::class);
 
-        $command = new PaymentImportCommand($validator, $normalizer, $csvReader);
+        $command = new PaymentImportCommand($validator, $normalizer, $csvReader, $logger);
 
         $input = new ArrayInput(['file' => $this->testCsvPath]);
         $output = new BufferedOutput();
@@ -73,8 +75,9 @@ class PaymentImportCommandTest extends TestCase
         $csvReader = new CsvReader();
         $normalizer = new PaymentNormalizer(new \App\Transformers\DateTransformer());
         $validator = new PaymentValidator();
+        $logger = $this->createMock(\App\Logger\PaymentImportLogger::class);
 
-        $command = new PaymentImportCommand($validator, $normalizer, $csvReader);
+        $command = new PaymentImportCommand($validator, $normalizer, $csvReader, $logger);
 
         $input = new ArrayInput(['file' => $this->testCsvPath]);
         $output = new BufferedOutput();
@@ -92,8 +95,9 @@ class PaymentImportCommandTest extends TestCase
         $csvReader = new CsvReader();
         $normalizer = new PaymentNormalizer(new \App\Transformers\DateTransformer());
         $validator = new PaymentValidator();
+        $logger = $this->createMock(\App\Logger\PaymentImportLogger::class);
 
-        $command = new PaymentImportCommand($validator, $normalizer, $csvReader);
+        $command = new PaymentImportCommand($validator, $normalizer, $csvReader, $logger);
 
         $input = new ArrayInput(['file' => $this->testCsvPath]);
         $output = new BufferedOutput();
@@ -111,8 +115,9 @@ class PaymentImportCommandTest extends TestCase
         $csvReader = new CsvReader();
         $normalizer = new PaymentNormalizer(new \App\Transformers\DateTransformer());
         $validator = new PaymentValidator();
+        $logger = $this->createMock(\App\Logger\PaymentImportLogger::class);
 
-        $command = new PaymentImportCommand($validator, $normalizer, $csvReader);
+        $command = new PaymentImportCommand($validator, $normalizer, $csvReader, $logger);
 
         $input = new ArrayInput(['file' => $this->testCsvPath]);
         $output = new BufferedOutput();
@@ -130,8 +135,9 @@ class PaymentImportCommandTest extends TestCase
         $csvReader = new CsvReader();
         $normalizer = new PaymentNormalizer(new \App\Transformers\DateTransformer());
         $validator = new PaymentValidator();
+        $logger = $this->createMock(\App\Logger\PaymentImportLogger::class);
 
-        $command = new PaymentImportCommand($validator, $normalizer, $csvReader);
+        $command = new PaymentImportCommand($validator, $normalizer, $csvReader, $logger);
 
         $input = new ArrayInput(['file' => $this->testCsvPath]);
         $output = new BufferedOutput();
@@ -146,8 +152,9 @@ class PaymentImportCommandTest extends TestCase
         $csvReader = new CsvReader();
         $normalizer = new PaymentNormalizer(new \App\Transformers\DateTransformer());
         $validator = new PaymentValidator();
+        $logger = $this->createMock(\App\Logger\PaymentImportLogger::class);
 
-        $command = new PaymentImportCommand($validator, $normalizer, $csvReader);
+        $command = new PaymentImportCommand($validator, $normalizer, $csvReader, $logger);
 
         $input = new ArrayInput(['file' => 'randomFilePath']);
         $output = new BufferedOutput();

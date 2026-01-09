@@ -2,22 +2,21 @@
 
 namespace App\Logger;
 
-use Monolog\Handler\StreamHandler;
-use Monolog\Level;
 use Monolog\Logger;
 use App\Contracts\Loggers\LoggerInterface;
 
-class MonoLogger implements LoggerInterface
+abstract class MainLogger implements LoggerInterface
 {
     protected Logger $logger;
 
-    public function __construct()
+    public function __construct(string $category, string $logPath)
     {
-        // TODO: make dynamic log level and name
-        $log = new Logger('app');
-        $log->pushHandler(new StreamHandler('logs/app.log', Level::Warning));
+        $this->logger = LoggerFactory::createLogger($category, $logPath);
+    }
 
-        $this->logger = $log;
+    public function info(string $message, array $context = []): void
+    {
+        $this->logger->warning($message, $context);
     }
 
     public function warning(string $message, array $context = []): void
