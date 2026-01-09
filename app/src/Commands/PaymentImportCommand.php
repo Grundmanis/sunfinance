@@ -14,6 +14,15 @@ class PaymentImportCommand extends Command
 {
     protected static $defaultName = 'import';
 
+    public const SUCCESS = 0;
+    public const DUPLICATE = 1;
+    public const NEGATIVE_AMOUNT = 2;
+    public const INVALID_DATE = 2;
+    public const MISSING_LOAN_NUMBER = 4;
+    public const MISSING_REF = 5;
+    public const FILE_NOT_EXISTS = 6;
+    public const UNKNOWN_ERROR = 99;
+
     private PaymentValidator $validator;
     private PaymentNormalizer $normalizer;
     private CsvReaderInterface $csvReader;
@@ -39,41 +48,47 @@ class PaymentImportCommand extends Command
         $filePath = $input->getArgument('file');
 
         if (!file_exists($filePath)) {
+            // TODO: move to logs
             $output->writeln("<error>File not found: $filePath</error>");
-            return Command::FAILURE;
+            return PaymentImportCommand::FILE_NOT_EXISTS;
         }
 
         $this->csvReader->setFilePath($filePath);
         $records = $this->csvReader->getRecords();
 
-        $errors = [];
-        $recordIndex = 0;
-        $validRecords = [];
-
         foreach ($records as $record) {
-            print_r($record);
-            $recordIndex++;
             $record = $this->normalizer->normalize($record);
-            print_r($record);
+            $validationResult = $this->validator->validate($record);
 
-            $validationResult = $this->validator->validate($record, $recordIndex);
             if (!$validationResult->isValid()) {
-                $errors = array_merge($errors, $validationResult->getErrors());
-                continue;
+                foreach ($validationResult->getErrors() as $error) {
+                    // log errors here
+                    $output->writeln("<error>Field: {$error['propertyPath']}, Value: {$error['invalidValue']}, Message: {$error['message']}</error>");
+                    // TODO: refactor
+                    switch ($error['propertyPath']) {
+                        case 'refId':
+                            if ($error['message'] === 'Duplicate entry found for reference.') {
+                                return PaymentImportCommand::DUPLICATE;
+                            } else {
+                                return PaymentImportCommand::MISSING_REF;
+                            }
+                        case 'amount':
+                            return PaymentImportCommand::NEGATIVE_AMOUNT;
+                        case 'paymentDate':
+                            return PaymentImportCommand::INVALID_DATE;
+                        case 'description':
+                            return PaymentImportCommand::MISSING_LOAN_NUMBER;
+                            break;
+                        case 'loanNumber':
+                            return PaymentImportCommand::MISSING_LOAN_NUMBER;
+                            break;
+                    }
+                    return PaymentImportCommand::UNKNOWN_ERROR;
+                }
             }
-
-            $validRecords[] = $record;
         }
-
-        if (!empty($errors)) {
-            foreach ($errors as $error) {
-                $output->writeln("<error>$error</error>");
-            }
-            return Command::FAILURE;
-        }
-
 
         $output->writeln('<info>All records are valid!</info>');
-        return Command::SUCCESS;
+        return PaymentImportCommand::SUCCESS;
     }
 }

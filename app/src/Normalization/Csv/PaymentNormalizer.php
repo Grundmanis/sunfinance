@@ -24,6 +24,17 @@ class PaymentNormalizer implements PaymentNormalizerInterface
             'nationalSecurityNumber' => $record['nationalSecurityNumber'] ?? null,
             'description' => isset($record['description']) ? trim($record['description']) : null,
             'refId' => isset($record['paymentReference']) ? strtoupper(trim($record['paymentReference'])) : null,
+            'loanNumber' => isset($record['description']) ? $this->extractLoanNumber($record['description']) : null,
         ];
+    }
+
+    private function extractLoanNumber(?string $description): ?string
+    {
+        if ($description === null) {
+            return null;
+        }
+
+        preg_match('/LN\d{8}/', $description, $matches);
+        return $matches[0] ?? null;
     }
 }

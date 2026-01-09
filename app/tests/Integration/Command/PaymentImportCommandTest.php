@@ -13,17 +13,18 @@ use PHPUnit\Framework\TestCase;
 class PaymentImportCommandTest extends TestCase
 {
     private string $testCsvPath;
+    private string $columns = "paymentDate,payerName,payerSurname,amount,nationalSecurityNumber,description,paymentReference";
+    private array $validDataArray = ['paymentDate' => '2023-10-01', 'payerName' => 'John', 'payerSurname' => 'Doe', 'amount' => '100.50', 'nationalSecurityNumber' => '123456789', 'description' => 'Loan number LN12345678', 'paymentReference' => 'REF123'];
 
     protected function setUp(): void
     {
-        // Create a temporary CSV file for testing
         $this->testCsvPath = sys_get_temp_dir() . '/test.csv';
-        file_put_contents($this->testCsvPath, "paymentDate,payerName,payerSurname,amount,nationalSecurityNumber,description,paymentReference\n2023-10-01,John,Doe,100.50,123456789,Loan number LNAB12345678,REF123");
+        $validData = implode(',', array_values($this->validDataArray));
+        file_put_contents($this->testCsvPath, "$this->columns\n$validData");
     }
 
     protected function tearDown(): void
     {
-        // Remove the temporary CSV file after the test
         if (file_exists($this->testCsvPath)) {
             unlink($this->testCsvPath);
         }
@@ -31,30 +32,24 @@ class PaymentImportCommandTest extends TestCase
 
     public function testExecuteWithValidCsv(): void
     {
-        // Arrange: Set up dependencies
         $csvReader = new CsvReader();
         $normalizer = new PaymentNormalizer(new \App\Transformers\DateTransformer());
         $validator = new PaymentValidator();
 
         $command = new PaymentImportCommand($validator, $normalizer, $csvReader);
 
-        // Simulate console input and output
         $input = new ArrayInput(['file' => $this->testCsvPath]);
         $output = new BufferedOutput();
 
-        // Act: Execute the command
         $result = $command->run($input, $output);
 
-        // Assert: Verify the output and result
-        $this->assertEquals(0, $result); // Command::SUCCESS
-        $outputContent = $output->fetch();
-        $this->assertStringContainsString('All records are valid!', $outputContent);
+        $this->assertEquals(0, $result);
     }
 
-    public function testExecuteWithInvalidCsv(): void
+    public function testExecuteWithNegativeAmount(): void
     {
-        // Arrange: Create an invalid CSV file
-        file_put_contents($this->testCsvPath, "paymentDate,payerName,payerSurname,amount,nationalSecurityNumber,description,paymentReference\ninvalid-date,John,Doe,-50,,Invalid description,REF123");
+        $data = implode(',', array_merge($this->validDataArray, ['amount' => '-50.00']));
+        file_put_contents($this->testCsvPath, "$this->columns\n$data");
 
         $csvReader = new CsvReader();
         $normalizer = new PaymentNormalizer(new \App\Transformers\DateTransformer());
@@ -65,13 +60,100 @@ class PaymentImportCommandTest extends TestCase
         $input = new ArrayInput(['file' => $this->testCsvPath]);
         $output = new BufferedOutput();
 
-        // Act: Execute the command
         $result = $command->run($input, $output);
 
-        // Assert: Verify the output and result
-        $this->assertEquals(1, $result); // Command::FAILURE
-        $outputContent = $output->fetch();
-        $this->assertStringContainsString('This value is not a valid date.', $outputContent);
-        $this->assertStringContainsString('This value should be greater than 0.', $outputContent);
+        $this->assertEquals(2, $result);
+    }
+
+    public function testExecuteWithDuplicate(): void
+    {
+        $data = implode(',', array_values($this->validDataArray));
+        file_put_contents($this->testCsvPath, "$this->columns\n$data\n$data");
+
+        $csvReader = new CsvReader();
+        $normalizer = new PaymentNormalizer(new \App\Transformers\DateTransformer());
+        $validator = new PaymentValidator();
+
+        $command = new PaymentImportCommand($validator, $normalizer, $csvReader);
+
+        $input = new ArrayInput(['file' => $this->testCsvPath]);
+        $output = new BufferedOutput();
+
+        $result = $command->run($input, $output);
+
+        $this->assertEquals(1, $result);
+    }
+
+    public function testExecuteWithInvalidDate(): void
+    {
+        $data = implode(',', array_merge($this->validDataArray, ['paymentDate' => 'invalid-date']));
+        file_put_contents($this->testCsvPath, "$this->columns\n$data");
+
+        $csvReader = new CsvReader();
+        $normalizer = new PaymentNormalizer(new \App\Transformers\DateTransformer());
+        $validator = new PaymentValidator();
+
+        $command = new PaymentImportCommand($validator, $normalizer, $csvReader);
+
+        $input = new ArrayInput(['file' => $this->testCsvPath]);
+        $output = new BufferedOutput();
+
+        $result = $command->run($input, $output);
+
+        $this->assertEquals(2, $result);
+    }
+
+    public function testExecuteWithMissingLoanNumberInDescription(): void
+    {
+        $data = implode(',', array_merge($this->validDataArray, ['description' => 'No loan number here']));
+        file_put_contents($this->testCsvPath, "$this->columns\n$data");
+
+        $csvReader = new CsvReader();
+        $normalizer = new PaymentNormalizer(new \App\Transformers\DateTransformer());
+        $validator = new PaymentValidator();
+
+        $command = new PaymentImportCommand($validator, $normalizer, $csvReader);
+
+        $input = new ArrayInput(['file' => $this->testCsvPath]);
+        $output = new BufferedOutput();
+
+        $result = $command->run($input, $output);
+
+        $this->assertEquals(4, $result);
+    }
+
+    public function testExecuteWithMissingRef(): void
+    {
+        $data = implode(',', array_merge($this->validDataArray, ['paymentReference' => '']));
+        file_put_contents($this->testCsvPath, "$this->columns\n$data");
+
+        $csvReader = new CsvReader();
+        $normalizer = new PaymentNormalizer(new \App\Transformers\DateTransformer());
+        $validator = new PaymentValidator();
+
+        $command = new PaymentImportCommand($validator, $normalizer, $csvReader);
+
+        $input = new ArrayInput(['file' => $this->testCsvPath]);
+        $output = new BufferedOutput();
+
+        $result = $command->run($input, $output);
+
+        $this->assertEquals(5, $result);
+    }
+
+    public function testExecuteWithMissingFile(): void
+    {
+        $csvReader = new CsvReader();
+        $normalizer = new PaymentNormalizer(new \App\Transformers\DateTransformer());
+        $validator = new PaymentValidator();
+
+        $command = new PaymentImportCommand($validator, $normalizer, $csvReader);
+
+        $input = new ArrayInput(['file' => 'randomFilePath']);
+        $output = new BufferedOutput();
+
+        $result = $command->run($input, $output);
+
+        $this->assertEquals(6, $result);
     }
 }

@@ -85,29 +85,28 @@ Preparations:
 
 Process:
 
-1. Importing csv file which contains following fields: **import --file=<FILE_PATH>**
-   (required) paymentDate - "Wed, 14 Dec 2022 11:20:45 +0000" / 20221310235959
-   (required) payerName - Pupa / Armands
-   (required) payerSurname - Lupa / Grundmanis
-   (required) amount - 17.99 / -20
-   (required?) nationalSecurityNumber - 1234567890 / null
-   (required - loan number is required in description) description - whatever + has loan number in description. Consists of 2 letters and 8 numbers, starts with LN.
-   (required) paymentReference - ffsd2342134 / refId
+1. DONE - Importing csv file which contains following fields: **import --file=<FILE_PATH>**
+   DONE - (required) paymentDate - "Wed, 14 Dec 2022 11:20:45 +0000" / 20221310235959
+   DONE - (required) payerName - Pupa / Armands
+   DONE - (required) payerSurname - Lupa / Grundmanis
+   DONE - (required) amount - 17.99 / -20
+   DONE - (required?) nationalSecurityNumber - 1234567890 / null
+   DONE - (required - loan number is required in description) description - whatever + has loan number in description. Consists of 2 letters and 8 numbers, starts with LN.
+   DONE - (required) paymentReference - ffsd2342134 / refId
 
 Loop through every record and: 2. Validate:
 
-- all required fields present
-- duplicate entry (paymentReference or refId)
-- negative amount
-- invalid date
-- Get Loan number , error "4" - no loan number in description.
-  2.1. Create ResponseError class for Console -
-  Duplicate entry - 1,
-  Negative amount - 2,
-  Invalid date - 3,
-  All fine - 0,
-  4 - "No laon number in description",
-  - "No required field"
+DONE - duplicate entry (paymentReference or refId)
+DONE - negative amount
+DONE - invalid date
+DONE - Get Loan number , error "4" - no loan number in description.
+DONE - 2.1. Create ResponseError class for Console -
+DONE - Duplicate entry - 1,
+DONE - Negative amount - 2,
+DONE - Invalid date - 3,
+DONE - All fine - 0,
+DONE - 4 - "No laon number in description",
+DONE - - "No required field"
 
 3. Save to store with following logic:
    When payment amount equals to matched loan amount to pay

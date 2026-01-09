@@ -9,7 +9,7 @@ class PaymentValidator
 {
     private array $seenReferences = [];
 
-    public function validate(array $record, int $recordIndex)
+    public function validate(array $record)
     {
         $validator = Validation::createValidator();
         $constraints = new Assert\Collection([
@@ -23,41 +23,38 @@ class PaymentValidator
             'nationalSecurityNumber' => new Assert\Optional(),
             'description' => new Assert\NotBlank(),
             'refId' => new Assert\NotBlank(),
+            'loanNumber' => [new Assert\NotBlank(), new Assert\Regex('/LN\d{8}/')]
         ]);
 
         $violations = $validator->validate($record, $constraints);
         $errors = [];
 
         foreach ($violations as $violation) {
-            $errors[] = sprintf(
-                "Record #%d (refId: %s, field: %s, value: %s): %s",
-                $recordIndex,
-                $record['refId'] ?? 'N/A',
-                $violation->getPropertyPath(),
-                var_export($violation->getInvalidValue(), true),
-                $violation->getMessage()
-            );
+            $errors[] = [
+                'propertyPath' => trim($violation->getPropertyPath(), '[]'), // remove brackets TODO: fix
+                'invalidValue' => $violation->getInvalidValue(),
+                'message' => $violation->getMessage(),
+            ];
         }
 
         // Check for duplicate references
         if (isset($this->seenReferences[$record['refId']])) {
-            $errors[] = sprintf(
-                "Record #%d (refId: %s): Duplicate entry found for reference.",
-                $recordIndex,
-                $record['refId']
-            );
+            $errors[] = [
+                'propertyPath' => 'refId',
+                'invalidValue' => $record['refId'],
+                'message' => 'Duplicate entry found for reference.',
+            ];
         } else {
             $this->seenReferences[$record['refId']] = true;
         }
 
         // Check for loan number in description
         if (!preg_match('/LN\d{8}/', $record['description'])) {
-            $errors[] = sprintf(
-                "Record #%d (refId: %s): Description (%s) must contain a loan number starting with 'LN', followed by 2 letters and 8 digits.",
-                $recordIndex,
-                $record['refId'] ?? 'N/A',
-                $record['description']
-            );
+            $errors[] = [
+                'propertyPath' => 'description',
+                'invalidValue' => $record['description'],
+                'message' => "Description must contain a loan number starting with 'LN', followed by 2 letters and 8 digits.",
+            ];
         }
 
         return new ValidationResult(empty($errors), $errors);
