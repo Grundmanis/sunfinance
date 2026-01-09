@@ -28,23 +28,127 @@ make test
 
 The plan:
 
-1. Import CSV files (batches)
-2. Api call (single payment)
+Stack:
+Doctrine - storage
+Symfony Validator - validation
+Monolog - logging
+Doctrine Migrations - migration/seeds
+Symfony Console - import/report
+Symfony Dotenv - .env
+phpunit - test
+league/csv - csv handling
 
-Payment import and API request has loan number in description. Consists of 2 letters and 8 numbers, starts with LN.
+Api:
+symfony/http-foundation - request/response objects
+symfony/routing - routing
 
-3. Validate
+Preparations:
 
-   - duplicate entry (paymentReference or refId)
-   - negative amount
-   - invalid date
+1. Customer class
+   "id": "c539792e-7773-4a39-9cf6-f273b2581438",
+   "firstname": "Pupa",
+   "lastname": "Lupa",
+   "ssn": "0987654321", ?? not needed?
+   "email": "pupa.lupa@example.com"
 
-4. Save to the storage
+2. Loan class
+   "id": "51ed9314-955c-4014-8be2-b0e2b13588a5",
+   "customerId": "c539792e-7773-4a39-9cf6-f273b2581438",
+   "reference": "LN12345678",
+   "state": "ACTIVE",
+   "amount_issued": "100.00", // camelCase
+   "amount_to_pay": "120.00" // camelCase
+   "createdAt"
+   "updatedAt"
 
-5. Resources
+3. Payment class
+   "id": "c539792e-7773-4a39-9cf6-f273b2581438",
+   "loanId": "51ed9314-955c-4014-8be2-b0e2b13588a5",
+   "loanRef" optional, for audit
+   "fistName" ? payment can be made by someone else
+   "lastName" ? payment can be made by someone else
+   "createdAt"
+   "state": "ASSIGNED", // REFUND
+   "paymentDate"
+   "amount" 99 and -99
+   "refId" : external ref id string
+   "descripton": "text whatever"
+   "nationalSecurityNumber" ? nullable - we save since we receive it by requirement
 
-- loan
-- customer
-- payment
+4. Create logger - use monolib
 
-6. Logs
+5. Use sqlite for speed and simplicity - doctrine
+
+6. Migrate and seed customers.json - sumfony migration
+   2.1. Migrate and seed loans.json
+   2.2. Migrate and payments
+
+Process:
+
+1. Importing csv file which contains following fields: **import --file=<FILE_PATH>**
+   (required) paymentDate - "Wed, 14 Dec 2022 11:20:45 +0000" / 20221310235959
+   (required) payerName - Pupa / Armands
+   (required) payerSurname - Lupa / Grundmanis
+   (required) amount - 17.99 / -20
+   (required?) nationalSecurityNumber - 1234567890 / null
+   (required - loan number is required in description) description - whatever + has loan number in description. Consists of 2 letters and 8 numbers, starts with LN.
+   (required) paymentReference - ffsd2342134 / refId
+
+Loop through every record and: 2. Validate:
+
+- all required fields present
+- duplicate entry (paymentReference or refId)
+- negative amount
+- invalid date
+- Get Loan number , error "4" - no loan number in description.
+  2.1. Create ResponseError class for Console -
+  Duplicate entry - 1,
+  Negative amount - 2,
+  Invalid date - 3,
+  All fine - 0,
+  4 - "No laon number in description",
+  - "No required field"
+
+3. Save to store with following logic:
+   When payment amount equals to matched loan amount to pay
+
+   - Mark loan as paid
+   - Mark payment as assigned
+     When payment amount is greater than matched loan amount to pay
+   - Mark loan as paid
+   - Mark payment as partially assigned
+   - Create refund payment as separate entity called "Payment Order" with all necessary information
+     When payment amount is less than matched load amount to pay
+   - Mark payment as assigned
+
+4. Implement communicaiton using Events:
+
+- Payment received: communication sent to email and|or phone if defined
+- Loan fully paid: communication sent to email and|or phone if defined
+- Failed payments report: support@example.com
+
+5. Implement Console interface:
+
+- Show payments by date `report --date=YYYY-MM-DD`
+
+7. Implement API and reuse existing classes
+   1. API (single payment) - **{app_url}/api/payment**
+      Request body example:
+      {
+      "firstname": "Lorem",
+      "lastname": "Ipsum",
+      "paymentDate": "2022-12-12T15:19:21+00:00",
+      "amount": "99.99",
+      "description": "Lorem ipsum dolorLN20221212 sit amet...",
+      "refId": "dda8b637-b2e8-4f79-a4af-d1d68e266bf5"
+      },
+      {
+      "firstname": "Lorem",
+      "lastname": "Ipsum",
+      "paymentDate": "2022-12-12T15:19:21+00:00",
+      "amount": "99.99",
+      "description": "LN20221212",
+      "refId": "130f8a89-51c9-47d0-a6ef-1aea54924d3b"
+      }
+   2. Errors:
+   - API: Duplicate entry - 409, rest of errors - 400, All fine - 2XX depending on implementation

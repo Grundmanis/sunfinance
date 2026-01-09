@@ -11,7 +11,7 @@ cli:
 	docker compose exec php sh
 
 import:
-	docker compose exec php php import.php
+	docker compose exec -w /var/www/app php php bin/console import $(file)
 
 test:
 	docker compose exec php vendor/bin/phpunit
