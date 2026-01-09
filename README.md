@@ -26,6 +26,15 @@ docker compose exec php composer require --dev phpunit/phpunit
 Test:
 make test
 
+Db logs:
+docker compose logs -f db
+
+To run migrations once:
+make migrate
+
+To seed:
+make seed
+
 The plan:
 
 Stack:

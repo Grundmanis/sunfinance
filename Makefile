@@ -15,3 +15,12 @@ import:
 
 test:
 	docker compose exec php vendor/bin/phpunit
+
+migrate:
+	docker compose exec -w /var/www/app php php scripts/migration.php
+
+seed:
+	docker compose exec -w /var/www/app php php scripts/seeder.php
+
+drop:
+	docker compose exec -w /var/www/app php php scripts/drop.php
