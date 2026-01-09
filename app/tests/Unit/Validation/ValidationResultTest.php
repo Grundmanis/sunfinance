@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Validation;
+namespace Tests\Unit\Validation;
 
 use App\Validation\ValidationResult;
 use PHPUnit\Framework\TestCase;

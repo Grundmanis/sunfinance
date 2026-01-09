@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Normalization\Csv;
+namespace Tests\Unit\Normalization\Csv;
 
 use App\Normalization\Csv\PaymentNormalizer;
 use App\Transformers\DateTransformer;

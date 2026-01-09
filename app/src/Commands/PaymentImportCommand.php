@@ -2,9 +2,8 @@
 
 namespace App\Commands;
 
+use App\Contracts\Services\CsvReaderInterface;
 use App\Normalization\Csv\PaymentNormalizer;
-use League\Csv\Reader;
-use League\Csv\Statement;
 use App\Validation\PaymentValidator;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -17,12 +16,14 @@ class PaymentImportCommand extends Command
 
     private PaymentValidator $validator;
     private PaymentNormalizer $normalizer;
+    private CsvReaderInterface $csvReader;
 
-    public function __construct(PaymentValidator $validator, PaymentNormalizer $normalizer)
+    public function __construct(PaymentValidator $validator, PaymentNormalizer $normalizer, CsvReaderInterface $csvReader)
     {
         parent::__construct();
         $this->validator = $validator;
         $this->normalizer = $normalizer;
+        $this->csvReader = $csvReader;
     }
 
     protected function configure(): void
@@ -42,18 +43,8 @@ class PaymentImportCommand extends Command
             return Command::FAILURE;
         }
 
-        // TODO: move to CSV reader service
-        $csv = Reader::from($filePath, 'r');
-        $csv->setHeaderOffset(0); //set the CSV header offset
-        $csv->setEscape(''); //required in PHP8.4+ to avoid deprecation notices
-
-        //get 25 records starting from the 11th row
-        $stmt = new Statement()
-            // ->offset(10)
-            // ->limit(25)
-        ;
-
-        $records = $stmt->process($csv);
+        $this->csvReader->setFilePath($filePath);
+        $records = $this->csvReader->getRecords();
 
         $errors = [];
         $recordIndex = 0;

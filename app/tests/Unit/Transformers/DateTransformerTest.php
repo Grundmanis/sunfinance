@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Transformers;
+namespace Tests\Unit\Transformers;
 
 use App\Transformers\DateTransformer;
 use PHPUnit\Framework\TestCase;
