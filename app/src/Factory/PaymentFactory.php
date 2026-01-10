@@ -7,7 +7,7 @@ use App\Entity\Loan;
 use App\Entity\Payment;
 use App\Entity\PaymentState;
 
-final class PaymentFactory
+class PaymentFactory
 {
     public function fromDto(PaymentDTO $dto, Loan $loan, string $amount, PaymentState $state, ?string $description = null, ?string $refSuffix = null): Payment
     {

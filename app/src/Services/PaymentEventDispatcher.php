@@ -8,7 +8,7 @@ use App\Event\LoanPaidEvent;
 use App\Event\PaymentReceivedEvent;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
-final class PaymentEventDispatcher
+class PaymentEventDispatcher
 {
     public function __construct(private EventDispatcherInterface $dispatcher) {}
 
