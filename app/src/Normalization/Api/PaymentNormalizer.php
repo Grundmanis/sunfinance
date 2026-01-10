@@ -4,6 +4,7 @@ namespace App\Normalization\Api;
 
 use App\Contracts\Normalization\PaymentNormalizerInterface;
 use App\DTO\PaymentDTO;
+use App\Entity\Payment;
 use App\Transformers\DateTransformer;
 
 class PaymentNormalizer implements PaymentNormalizerInterface
@@ -28,6 +29,22 @@ class PaymentNormalizer implements PaymentNormalizerInterface
         ];
 
         return PaymentDTO::fromArray($data);
+    }
+
+    public function denormalize(Payment $payment): array
+    {
+        return [
+            'id' => $payment->getId(),
+            'loanId' => $payment->getLoanId(),
+            'loanRef' => $payment->getLoanRef(),
+            'firstName' => $payment->getFirstName(),
+            'lastName' => $payment->getLastName(),
+            'state' => $payment->getState()->value,
+            'paymentDate' => $payment->getPaymentDate()->format('Y-m-d H:i:s'),
+            'amount' => (float) $payment->getAmount(),
+            'refId' => $payment->getRefId(),
+            'description' => $payment->getDescription(),
+        ];
     }
 
     // TODO: move out to a dedicated service

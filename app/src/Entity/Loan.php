@@ -30,9 +30,9 @@ class Loan
     #[Assert\NotBlank]
     private string $reference;
 
-    #[ORM\Column(type: "string", length: 20)]
+    #[ORM\Column(type: "string", enumType: LoanState::class, length: 20)]
     #[Assert\NotBlank]
-    private string $state;
+    private LoanState $state;
 
     // TODO: currency
 
@@ -99,14 +99,17 @@ class Loan
         return $this;
     }
 
-    public function getState(): string
+    public function getState(): LoanState
     {
         return $this->state;
     }
 
-    public function setState(string $state): self
+    public function setState(LoanState $state): self
     {
         $this->state = $state;
+        if ($this->state === LoanState::PAID) {
+            $this->amountToPay = '0';
+        }
 
         return $this;
     }

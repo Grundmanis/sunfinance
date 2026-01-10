@@ -9,18 +9,12 @@ use Symfony\Component\Validator\Validation;
 
 class PaymentValidator
 {
-    private LoanRepository $loanRepository;
-    private PaymentRepository $paymentRepository;
-
     // TODO: inject validator
     // private ValidatorInterface $validator,
     public function __construct(
-        LoanRepository $loanRepository,
-        PaymentRepository $paymentRepository
-    ) {
-        $this->loanRepository = $loanRepository;
-        $this->paymentRepository = $paymentRepository;
-    }
+        private LoanRepository $loanRepository,
+        private PaymentRepository $paymentRepository,
+    ) {}
 
     public function validate(PaymentDTO $dto): ValidationResult
     {
@@ -35,6 +29,7 @@ class PaymentValidator
                 'propertyPath' => (string) $violation->getPropertyPath(),
                 'invalidValue' => $violation->getInvalidValue(),
                 'message' => $violation->getMessage(),
+                'type' => 'validation', // TODO: const
             ];
         }
 
@@ -47,6 +42,7 @@ class PaymentValidator
                     'propertyPath' => 'loanNumber',
                     'invalidValue' => $dto->loanNumber,
                     'message' => 'Loan not found for provided loan number.',
+                    'type' => 'notFound', // TODO: const
                 ];
             }
         }
@@ -60,6 +56,7 @@ class PaymentValidator
                     'propertyPath' => 'refId',
                     'invalidValue' => $dto->refId,
                     'message' => 'Payment with provided refId already exists.',
+                    'type' => 'duplicate', // TODO: const
                 ];
             }
         }

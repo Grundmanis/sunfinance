@@ -4,115 +4,121 @@ namespace App\Services;
 
 use App\Contracts\Loggers\LoggerInterface;
 use App\DTO\PaymentDTO;
+use App\Entity\Loan;
+use App\Entity\LoanState;
 use App\Entity\Payment;
-use App\Event\LoanPaidEvent;
-use App\Event\PaymentReceivedEvent;
+use App\Entity\PaymentState;
+use App\Factory\PaymentFactory;
 use App\Repository\LoanRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class PaymentService
 {
-    private EntityManagerInterface $entityManager;
-    private LoggerInterface $logger;
-    private EventDispatcherInterface $eventDispatcher;
-    private LoanRepository $loanRepository;
-
     public function __construct(
-        EntityManagerInterface $entityManager,
-        LoggerInterface $logger,
-        EventDispatcherInterface $eventDispatcher,
-        LoanRepository $loanRepository
-    ) {
-        $this->entityManager = $entityManager;
-        $this->logger = $logger;
-        $this->eventDispatcher = $eventDispatcher;
-        $this->loanRepository = $loanRepository;
+        private EntityManagerInterface $entityManager,
+        private LoggerInterface $logger,
+        private LoanRepository $loanRepository,
+        private PaymentFactory $paymentFactory,
+        private PaymentEventDispatcher $paymentEventDispatcher,
+    ) {}
+
+    public function createPayment(PaymentDTO $dto): Payment
+    {
+        return $this->entityManager->wrapInTransaction(function () use ($dto) {
+            $loan = $this->loanRepository->getByReference($dto->loanNumber);
+            $comparison = bccomp($dto->amount, $loan->getAmountToPay(), 2);
+
+            $payment = match ($comparison) {
+                0  => $this->handleExactPayment($dto, $loan),
+                -1 => $this->handlePartialPayment($dto, $loan),
+                1  => $this->handleOverPayment($dto, $loan),
+            };
+
+            $this->entityManager->flush();
+            return $payment;
+        });
     }
 
-    public function processPayment(PaymentDTO $paymentDTO)
+    private function handleOverPayment(PaymentDTO $dto, Loan $loan): Payment
     {
-        $loan = $this->loanRepository->getByReference($paymentDTO->loanNumber);
+        $this->logger->info('Overpayment detected', [
+            'loanNumber' => $loan->getReference(),
+            'paymentAmount' => $dto->amount,
+            'amountToPay' => $loan->getAmountToPay(),
+        ]);
 
-        $payment = new Payment();
-        $payment->setLoanId($loan->getId());
-        $payment->setPaymentDate(new \DateTime($paymentDTO->paymentDate));
-        $payment->setFirstName($paymentDTO->firstName);
-        $payment->setLastName($paymentDTO->lastName);
-        $payment->setAmount($paymentDTO->amount);
-        $payment->setNationalSecurityNumber($paymentDTO->nationalSecurityNumber ?? null);
-        $payment->setDescription($paymentDTO->description);
-        $payment->setRefId($paymentDTO->refId);
-        $payment->setLoanRef($paymentDTO->loanNumber);
+        $refundAmount = bcsub($dto->amount, $loan->getAmountToPay(), 2);
+        $payment = $this->paymentFactory->fromDto(
+            $dto,
+            $loan,
+            $dto->amount,
+            PaymentState::ASSIGNED
+        );
+        $loan->setState(LoanState::PAID);
 
-        // TODO: test precision issues with decimal calculations
-        if ($paymentDTO->amount === $loan->getAmountToPay()) {
-            $this->logger->info('Payment matches loan amount to pay', [
-                'loanNumber' => $paymentDTO->loanNumber,
-            ]);
-            // TODO: use constants for states
-            $loan->setState('paid');
-            $loan->setAmountToPay('0');
-            $this->entityManager->persist($loan);
-            $payment->setState('assigned');
+        $refundPayment = $this->paymentFactory->createRefund(
+            $dto,
+            $loan,
+            $refundAmount,
+        );
 
-            // TODO: do not send multiple sms/email to the same customer 
-            $this->eventDispatcher->dispatch(
-                new LoanPaidEvent($loan),
-                'loan.fully_paid'
-            );
-        } else if ($paymentDTO->amount < $loan->getAmountToPay()) {
+        $this->entityManager->persist($loan);
+        $this->entityManager->persist($payment);
+        $this->entityManager->persist($refundPayment);
 
-            $this->logger->info('Payment amount is less than loan amount to pay', [
-                'loanNumber' => $paymentDTO->loanNumber,
-            ]);
+        $this->paymentEventDispatcher->dispatchPaymentReceived($payment, $loan, $refundAmount);
+        $this->paymentEventDispatcher->dispatchLoanPaid($loan);
 
-            $newAmountToPay = bcsub($loan->getAmountToPay(), $paymentDTO->amount, 2);
-            $loan->setAmountToPay($newAmountToPay);
-            $this->entityManager->persist($loan);
-            $payment->setState('assigned');
+        return $payment;
+    }
 
-            // TODO: do not send multiple sms/email to the same customer 
-            $this->eventDispatcher->dispatch(
-                new PaymentReceivedEvent($payment, $loan),
-                'payment.received'
-            );
-        } else {
-            $this->logger->info('Payment amount exceeds loan amount to pay', [
-                'loanNumber' => $paymentDTO->loanNumber,
-            ]);
-            $loan->setState('paid');
-            $loan->setAmountToPay('0');
+    private function handlePartialPayment(PaymentDTO $dto, Loan $loan): Payment
+    {
+        $this->logger->info('Partial payment received', [
+            'loanNumber' => $loan->getReference(),
+            'paymentAmount' => $dto->amount,
+            'amountToPay' => $loan->getAmountToPay(),
+        ]);
 
-            $payment->setState('partially_assigned');
-            $this->entityManager->persist($loan);
+        $payment = $this->paymentFactory->fromDto(
+            $dto,
+            $loan,
+            $dto->amount,
+            PaymentState::ASSIGNED
+        );
 
-            // DONE - Create refund payment as separate entity called "Payment Order" with all necessary information
-            $refundAmount = bcsub($paymentDTO->amount, $loan->getAmountToPay(), 2);
-            $refundPayment = new Payment();
-            $refundPayment->setLoanId($loan->getId());
-            $refundPayment->setPaymentDate(new \DateTime($paymentDTO->paymentDate));
-            $refundPayment->setFirstName($paymentDTO->firstName);
-            $refundPayment->setLastName($paymentDTO->lastName);
-            $refundPayment->setAmount($refundAmount);
-            $refundPayment->setNationalSecurityNumber($paymentDTO->nationalSecurityNumber ?? null);
-            $refundPayment->setDescription('Refund for overpayment of loan ' . $paymentDTO->loanNumber);
-            $refundPayment->setRefId($paymentDTO->refId . '-REFUND');
-            $refundPayment->setLoanRef($paymentDTO->loanNumber);
-            // TODO: use constants for states
-            $refundPayment->setState('refund');
-
-            $this->entityManager->persist($refundPayment);
-
-            // TODO: change event to include refund info
-            // TODO: do not send multiple sms/email to the same customer 
-            $this->eventDispatcher->dispatch(
-                new PaymentReceivedEvent($payment, $loan, $refundAmount),
-                'payment.received'
-            );
-        }
+        $newAmountToPay = bcsub($loan->getAmountToPay(), $dto->amount, 2);
+        $loan->setAmountToPay($newAmountToPay);
 
         $this->entityManager->persist($payment);
-        $this->entityManager->flush();
+        $this->entityManager->persist($loan);
+
+        $this->paymentEventDispatcher->dispatchPaymentReceived($payment, $loan);
+
+        return $payment;
+    }
+
+    private function handleExactPayment(PaymentDTO $dto, Loan $loan): Payment
+    {
+        $this->logger->info('Exact payment received', [
+            'loanNumber' => $loan->getReference(),
+            'paymentAmount' => $dto->amount,
+        ]);
+
+        $payment = $this->paymentFactory->fromDto(
+            $dto,
+            $loan,
+            $dto->amount,
+            PaymentState::ASSIGNED
+        );
+
+        $loan->setState(LoanState::PAID);
+
+        $this->entityManager->persist($loan);
+        $this->entityManager->persist($payment);
+
+        $this->paymentEventDispatcher->dispatchLoanPaid($loan);
+
+        return $payment;
     }
 }

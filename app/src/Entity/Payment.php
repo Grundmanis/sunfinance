@@ -37,13 +37,13 @@ class Payment
     #[Assert\NotBlank]
     private string $lastName;
 
-    #[ORM\Column(type: "string", length: 20)]
+    #[ORM\Column(type: "string", enumType: PaymentState::class, length: 20)]
     #[Assert\NotBlank]
-    private string $state;
+    private PaymentState $state;
 
-    #[ORM\Column(type: "datetime")]
+    #[ORM\Column(type: "datetime_immutable")]
     #[Assert\NotBlank]
-    private \DateTime $paymentDate;
+    private \DateTimeImmutable $paymentDate;
 
     #[ORM\Column(type: "decimal", precision: 10, scale: 2)]
     #[Assert\NotBlank]
@@ -130,24 +130,24 @@ class Payment
         return $this;
     }
 
-    public function getState(): string
+    public function getState(): PaymentState
     {
         return $this->state;
     }
 
-    public function setState(string $state): self
+    public function setState(PaymentState $state): self
     {
         $this->state = $state;
 
         return $this;
     }
 
-    public function getPaymentDate(): \DateTime
+    public function getPaymentDate(): \DateTimeImmutable
     {
         return $this->paymentDate;
     }
 
-    public function setPaymentDate(\DateTime $paymentDate): self
+    public function setPaymentDate(\DateTimeImmutable $paymentDate): self
     {
         $this->paymentDate = $paymentDate;
 

@@ -31,41 +31,29 @@ class PaymentController
     public function create(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
-
         if (!$data) {
             return new JsonResponse(['error' => 'Invalid JSON'], 400);
         }
 
-        $payment = $this->paymentNormalizer->normalize($data);
-        $validationResult = $this->validator->validate($payment);
+        $dto = $this->paymentNormalizer->normalize($data);
+        $validationResult = $this->validator->validate($dto);
 
         if (!$validationResult->isValid()) {
             $this->logger->info('Payment validation failed', ['data' => $validationResult]);
-            foreach ($validationResult->getErrors() as $error) {
-                $this->logger->warning('Validation error', [
-                    'field' => $error['propertyPath'],
-                    'value' => $error['invalidValue'],
-                    'message' => $error['message'],
-                ]);
-                return $this->mapErrorToExitCode($error);
-            }
+            return $this->mapErrorToExitCode($validationResult->getErrors()[0]);
         }
 
-        $this->logger->info('validaiton good');
+        $payment = $this->paymentService->createPayment($dto);
 
-        $this->paymentService->processPayment($payment);
-
-        return new JsonResponse([
-            'status' => 'ok',
-            'time' => date('c'),
-            'payment' => $payment,
-        ]);
+        return new JsonResponse($this->paymentNormalizer->denormalize($payment), 201);
     }
 
     // TODO: move out
     private function mapErrorToExitCode(array $error): JsonResponse
     {
+        if ($error['type'] === 'duplicate') { // TODO: const
+            return new JsonResponse(['error' => $error['message']], 409);
+        }
         return new JsonResponse(['error' => $error['message']], 400);
-        // throw 409 for the duplicate
     }
 }

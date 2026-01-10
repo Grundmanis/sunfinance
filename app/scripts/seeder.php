@@ -4,6 +4,7 @@
 
 use App\Entity\Customer;
 use App\Entity\Loan;
+use App\Entity\LoanState;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -49,7 +50,7 @@ foreach ($jsonData as $item) {
     $loan->setId($item['id']);
     $loan->setCustomerId($item['customerId']);
     $loan->setReference($item['reference']);
-    $loan->setState($item['state']);
+    $loan->setState(LoanState::from($item['state']));
     $loan->setAmountIssued($item['amount_issued']);
     $loan->setAmountToPay($item['amount_to_pay']);
 
