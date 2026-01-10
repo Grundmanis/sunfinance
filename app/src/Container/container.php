@@ -14,6 +14,7 @@ use App\Repository\PaymentRepository;
 use App\Services\CsvReader;
 use DI\ContainerBuilder;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -42,7 +43,12 @@ return (function () {
         }),
         PaymentRepository::class => DI\factory(function (EntityManagerInterface $em) {
             return $em->getRepository(Payment::class);
-        })
+        }),
+        ValidatorInterface::class => DI\factory(function () {
+            return \Symfony\Component\Validator\Validation::createValidatorBuilder()
+                ->enableAttributeMapping()
+                ->getValidator();
+        }),
     ]);
 
     return $builder->build();

@@ -9,7 +9,7 @@ use App\Validation\PaymentValidator;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
-class PaymentController
+final class PaymentController
 {
     private LoggerInterface $logger;
     private PaymentNormalizer $paymentNormalizer;

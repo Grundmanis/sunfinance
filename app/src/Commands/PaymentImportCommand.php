@@ -15,7 +15,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
-class PaymentImportCommand extends Command
+final class PaymentImportCommand extends Command
 {
     protected static $defaultName = 'import';
 
@@ -80,7 +80,7 @@ class PaymentImportCommand extends Command
 
         foreach ($records as $record) {
             $record = $this->normalizer->normalize($record);
-            $validationResult = $this->validator->validate($record->toArray());
+            $validationResult = $this->validator->validate($record);
 
             if (!$validationResult->isValid()) {
                 foreach ($validationResult->getErrors() as $error) {
@@ -98,7 +98,7 @@ class PaymentImportCommand extends Command
 
         foreach ($normalizedRecords as $record) {
             // try catch ?
-            $result = $this->paymentService->processPayment($record);
+            $result = $this->paymentService->createPayment($record);
             // if ($result !== PaymentImportCommand::SUCCESS) {
             //     $this->logger->warning('Payment processing error', [
             //         'loanNumber' => $record['loanNumber'],

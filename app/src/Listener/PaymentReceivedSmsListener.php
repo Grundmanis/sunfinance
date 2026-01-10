@@ -5,7 +5,7 @@ namespace App\Listener;
 use App\Contracts\Communication\SmsSenderInterface;
 use App\Event\PaymentReceivedEvent;
 
-class PaymentReceivedSmsListener
+final class PaymentReceivedSmsListener
 {
     private readonly SmsSenderInterface $smsSender;
 
@@ -17,6 +17,7 @@ class PaymentReceivedSmsListener
 
     public function __invoke(PaymentReceivedEvent $event): void
     {
+        // TODO: Get phone number from loan or user entity
         $this->smsSender->send(
             "+371222333444",
             'Payment received. Thank you!',

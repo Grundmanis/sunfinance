@@ -5,7 +5,7 @@ namespace App\Listener;
 use App\Contracts\Communication\SmsSenderInterface;
 use App\Event\LoanPaidEvent;
 
-class LoanPaidSmsListener
+final class LoanPaidSmsListener
 {
     private readonly SmsSenderInterface $smsSender;
 
@@ -18,6 +18,7 @@ class LoanPaidSmsListener
     public function __invoke(LoanPaidEvent $event): void
     {
         // separate class for the SMS Loan paid notification should be implemented
+        // TODO: Get phone number from loan or user entity
         $this->smsSender->send(
             "+371222333444",
             'Loan has been paid off. Thank you!',

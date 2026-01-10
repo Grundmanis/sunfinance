@@ -2,7 +2,7 @@
 
 namespace App\Logger;
 
-class AppLogger extends MainLogger
+final class AppLogger extends MainLogger
 {
     public function __construct()
     {

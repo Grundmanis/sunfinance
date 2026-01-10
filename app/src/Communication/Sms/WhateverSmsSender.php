@@ -4,7 +4,7 @@ namespace App\Communication\Sms;
 
 use App\Contracts\Communication\SmsSenderInterface;
 
-class WhateverSmsSender implements SmsSenderInterface
+final class WhateverSmsSender implements SmsSenderInterface
 {
     public function send(string $phone, string $message): void
     {

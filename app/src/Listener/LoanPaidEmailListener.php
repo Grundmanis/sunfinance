@@ -5,7 +5,7 @@ namespace App\Listener;
 use App\Contracts\Communication\EmailSenderInterface;
 use App\Event\LoanPaidEvent;
 
-class LoanPaidEmailListener
+final class LoanPaidEmailListener
 {
     private readonly EmailSenderInterface $emailSender;
 
@@ -18,6 +18,7 @@ class LoanPaidEmailListener
     public function __invoke(LoanPaidEvent $event): void
     {
         // TODO: email Loan paid class should be implemented
+        // TODO: Get phone number from loan or user entity
         $this->emailSender->send(
             to: "test@test.lv",
             subject: 'Your loan has been paid off',

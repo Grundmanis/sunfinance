@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Logger;
+namespace App\Factory;
 
 use Monolog\Handler\StreamHandler;
 use Monolog\Level;
 use Monolog\Logger;
 
-class LoggerFactory
+final class LoggerFactory
 {
     public static function createLogger(string $category, string $logPath): Logger
     {

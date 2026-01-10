@@ -12,7 +12,7 @@ use App\Factory\PaymentFactory;
 use App\Repository\LoanRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
-class PaymentService
+final class PaymentService
 {
     public function __construct(
         private EntityManagerInterface $entityManager,

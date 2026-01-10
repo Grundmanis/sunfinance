@@ -5,7 +5,7 @@ namespace App\DTO;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
-class PaymentDTO extends DTO
+final class PaymentDTO extends DTO
 {
     #[Assert\NotBlank]
     #[Assert\DateTime]

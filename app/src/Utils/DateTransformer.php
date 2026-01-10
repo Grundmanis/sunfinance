@@ -1,13 +1,16 @@
 <?php
 
-namespace App\Transformers;
+namespace App\Utils;
 
 use DateTime;
 use Exception;
 
-class DateTransformer
+final class DateTransformer
 {
-    public function transform(string $date): ?string
+    /**
+     * * Transforms various date formats into 'Y-m-d H:i:s' format.
+     */
+    public static function transform(string $date): ?string
     {
         try {
             if (preg_match('/^\d{14}$/', $date)) {

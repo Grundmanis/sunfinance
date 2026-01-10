@@ -4,7 +4,7 @@ namespace App\Communication\Email;
 
 use App\Contracts\Communication\EmailSenderInterface;
 
-class SmtpEmailSender implements EmailSenderInterface
+final class SmtpEmailSender implements EmailSenderInterface
 {
     public function send(string $to, string $subject, string $body): void
     {

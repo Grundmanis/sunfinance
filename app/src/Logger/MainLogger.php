@@ -4,6 +4,7 @@ namespace App\Logger;
 
 use Monolog\Logger;
 use App\Contracts\Loggers\LoggerInterface;
+use App\Factory\LoggerFactory;
 
 abstract class MainLogger implements LoggerInterface
 {

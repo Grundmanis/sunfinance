@@ -7,7 +7,7 @@ use League\Csv\Reader;
 use League\Csv\Statement;
 use InvalidArgumentException;
 
-class CsvReader implements CsvReaderInterface
+final class CsvReader implements CsvReaderInterface
 {
     private string $filePath;
     private int $headerOffset = 0;

@@ -5,7 +5,7 @@ namespace App\Listener;
 use App\Contracts\Communication\EmailSenderInterface;
 use App\Event\FailedPaymentReportEvent;
 
-class FailedPaymentListener
+final class FailedPaymentListener
 {
     private readonly EmailSenderInterface $emailSender;
 
@@ -18,6 +18,7 @@ class FailedPaymentListener
     public function __invoke(FailedPaymentReportEvent $event): void
     {
         // TODO: separate class + pass payment details to email body
+        // TODO: USE IT 
         $this->emailSender->send(
             to: "support@example.com",
             subject: 'Failed payment report',
