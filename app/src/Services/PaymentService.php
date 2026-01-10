@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Contracts\Loggers\LoggerInterface;
+use App\DTO\PaymentDTO;
 use App\Entity\Payment;
 use App\Event\LoanPaidEvent;
 use App\Event\PaymentReceivedEvent;
@@ -11,7 +12,6 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class PaymentService
 {
-
     private EntityManagerInterface $entityManager;
     private LoggerInterface $logger;
     private EventDispatcherInterface $eventDispatcher;
@@ -27,15 +27,15 @@ class PaymentService
     }
 
     // TODO: change array to DTO
-    public function processPayment(array $record)
+    public function processPayment(PaymentDTO $paymentDTO)
     {
         // TODO: move to validation logic
         $loan = $this->entityManager->getRepository('App\Entity\Loan')
             // TODO: add additional state filter
-            ->findOneBy(['reference' => $record['loanNumber']]);
+            ->findOneBy(['reference' => $paymentDTO->loanNumber]);
         if (!$loan) {
             $this->logger->warning('Unknown loan number', [
-                'loanNumber' => $record['loanNumber'],
+                'loanNumber' => $paymentDTO->loanNumber,
             ]);
             return;
             // return PaymentImportCommand::UNKNOWN_LOAN_NUMBER;
@@ -43,19 +43,19 @@ class PaymentService
 
         $payment = new Payment();
         $payment->setLoanId($loan->getId());
-        $payment->setPaymentDate(new \DateTime($record['paymentDate']));
-        $payment->setFirstName($record['firstName']);
-        $payment->setLastName($record['lastName']);
-        $payment->setAmount($record['amount']);
-        $payment->setNationalSecurityNumber($record['nationalSecurityNumber'] ?? null);
-        $payment->setDescription($record['description']);
-        $payment->setRefId($record['refId']);
-        $payment->setLoanRef($record['loanNumber']);
+        $payment->setPaymentDate(new \DateTime($paymentDTO->paymentDate));
+        $payment->setFirstName($paymentDTO->firstName);
+        $payment->setLastName($paymentDTO->lastName);
+        $payment->setAmount($paymentDTO->amount);
+        $payment->setNationalSecurityNumber($paymentDTO->nationalSecurityNumber ?? null);
+        $payment->setDescription($paymentDTO->description);
+        $payment->setRefId($paymentDTO->refId);
+        $payment->setLoanRef($paymentDTO->loanNumber);
 
         // TODO: test precision issues with decimal calculations
-        if ($record['amount'] === $loan->getAmountToPay()) {
+        if ($paymentDTO->amount === $loan->getAmountToPay()) {
             $this->logger->info('Payment matches loan amount to pay', [
-                'loanNumber' => $record['loanNumber'],
+                'loanNumber' => $paymentDTO->loanNumber,
             ]);
             // TODO: use constants for states
             $loan->setState('paid');
@@ -68,13 +68,13 @@ class PaymentService
                 new LoanPaidEvent($loan),
                 'loan.fully_paid'
             );
-        } else if ($record['amount'] < $loan->getAmountToPay()) {
+        } else if ($paymentDTO->amount < $loan->getAmountToPay()) {
 
             $this->logger->info('Payment amount is less than loan amount to pay', [
-                'loanNumber' => $record['loanNumber'],
+                'loanNumber' => $paymentDTO->loanNumber,
             ]);
 
-            $newAmountToPay = bcsub($loan->getAmountToPay(), $record['amount'], 2);
+            $newAmountToPay = bcsub($loan->getAmountToPay(), $paymentDTO->amount, 2);
             $loan->setAmountToPay($newAmountToPay);
             $this->entityManager->persist($loan);
             $payment->setState('assigned');
@@ -86,7 +86,7 @@ class PaymentService
             );
         } else {
             $this->logger->info('Payment amount exceeds loan amount to pay', [
-                'loanNumber' => $record['loanNumber'],
+                'loanNumber' => $paymentDTO->loanNumber,
             ]);
             $loan->setState('paid');
             $loan->setAmountToPay('0');
@@ -95,17 +95,17 @@ class PaymentService
             $this->entityManager->persist($loan);
 
             // DONE - Create refund payment as separate entity called "Payment Order" with all necessary information
-            $refundAmount = bcsub($record['amount'], $loan->getAmountToPay(), 2);
+            $refundAmount = bcsub($paymentDTO->amount, $loan->getAmountToPay(), 2);
             $refundPayment = new Payment();
             $refundPayment->setLoanId($loan->getId());
-            $refundPayment->setPaymentDate(new \DateTime($record['paymentDate']));
-            $refundPayment->setFirstName($record['firstName']);
-            $refundPayment->setLastName($record['lastName']);
+            $refundPayment->setPaymentDate(new \DateTime($paymentDTO->paymentDate));
+            $refundPayment->setFirstName($paymentDTO->firstName);
+            $refundPayment->setLastName($paymentDTO->lastName);
             $refundPayment->setAmount($refundAmount);
-            $refundPayment->setNationalSecurityNumber($record['nationalSecurityNumber'] ?? null);
-            $refundPayment->setDescription('Refund for overpayment of loan ' . $record['loanNumber']);
-            $refundPayment->setRefId($record['refId'] . '-REFUND');
-            $refundPayment->setLoanRef($record['loanNumber']);
+            $refundPayment->setNationalSecurityNumber($paymentDTO->nationalSecurityNumber ?? null);
+            $refundPayment->setDescription('Refund for overpayment of loan ' . $paymentDTO->loanNumber);
+            $refundPayment->setRefId($paymentDTO->refId . '-REFUND');
+            $refundPayment->setLoanRef($paymentDTO->loanNumber);
             // TODO: use constants for states
             $refundPayment->setState('refund');
 

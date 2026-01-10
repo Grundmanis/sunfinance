@@ -80,7 +80,7 @@ class PaymentImportCommand extends Command
 
         foreach ($records as $record) {
             $record = $this->normalizer->normalize($record);
-            $validationResult = $this->validator->validate($record);
+            $validationResult = $this->validator->validate($record->toArray());
 
             if (!$validationResult->isValid()) {
                 foreach ($validationResult->getErrors() as $error) {

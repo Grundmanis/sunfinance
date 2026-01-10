@@ -37,7 +37,7 @@ class PaymentController
         }
 
         $payment = $this->paymentNormalizer->normalize($data);
-        $validationResult = $this->validator->validate($payment);
+        $validationResult = $this->validator->validate($payment->toArray());
 
         if (!$validationResult->isValid()) {
             foreach ($validationResult->getErrors() as $error) {
