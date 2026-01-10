@@ -5,6 +5,9 @@ namespace App\Commands;
 use App\Contracts\Loggers\LoggerInterface;
 use App\Contracts\Services\CsvReaderInterface;
 use App\Entity\Payment;
+use App\Event\FailedPaymentReportEvent;
+use App\Event\LoanPaidEvent;
+use App\Event\PaymentReceivedEvent;
 use App\Logger\PaymentImportLogger;
 use App\Normalization\Csv\PaymentNormalizer;
 use App\Validation\PaymentValidator;
@@ -13,6 +16,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class PaymentImportCommand extends Command
 {
@@ -33,13 +37,15 @@ class PaymentImportCommand extends Command
     private CsvReaderInterface $csvReader;
     private LoggerInterface $logger;
     private EntityManagerInterface $entityManager;
+    private EventDispatcherInterface $eventDispatcher;
 
     public function __construct(
         PaymentValidator $validator,
         PaymentNormalizer $normalizer,
         CsvReaderInterface $csvReader,
         PaymentImportLogger $logger,
-        EntityManagerInterface $entityManager
+        EntityManagerInterface $entityManager,
+        EventDispatcherInterface $eventDispatcher
     ) {
         parent::__construct();
         $this->validator = $validator;
@@ -47,6 +53,7 @@ class PaymentImportCommand extends Command
         $this->csvReader = $csvReader;
         $this->logger = $logger;
         $this->entityManager = $entityManager;
+        $this->eventDispatcher = $eventDispatcher;
     }
 
     protected function configure(): void
@@ -60,6 +67,7 @@ class PaymentImportCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->logger->info('Payment import started.');
+
         $filePath = $input->getArgument('file');
 
         if (!file_exists($filePath)) {
@@ -69,6 +77,8 @@ class PaymentImportCommand extends Command
 
         $this->csvReader->setFilePath($filePath);
         $records = $this->csvReader->getRecords();
+
+        $normalizedRecords = [];
 
         foreach ($records as $record) {
             $record = $this->normalizer->normalize($record);
@@ -85,7 +95,10 @@ class PaymentImportCommand extends Command
                 }
             }
 
-            // find the target laon
+            $normalizedRecords[] = $record;
+        }
+
+        foreach ($normalizedRecords as $record) {
             // TODO: move to validation logic
             $loan = $this->entityManager->getRepository('App\Entity\Loan')
                 // TODO: add additional state filter
@@ -118,6 +131,12 @@ class PaymentImportCommand extends Command
                 $loan->setAmountToPay('0');
                 $this->entityManager->persist($loan);
                 $payment->setState('assigned');
+
+                // TODO: do not send multiple sms/email to the same customer 
+                $this->eventDispatcher->dispatch(
+                    new LoanPaidEvent($loan),
+                    'loan.fully_paid'
+                );
             } else if ($record['amount'] < $loan->getAmountToPay()) {
 
                 $this->logger->info('Payment amount is less than loan amount to pay', [
@@ -128,6 +147,12 @@ class PaymentImportCommand extends Command
                 $loan->setAmountToPay($newAmountToPay);
                 $this->entityManager->persist($loan);
                 $payment->setState('assigned');
+
+                // TODO: do not send multiple sms/email to the same customer 
+                $this->eventDispatcher->dispatch(
+                    new PaymentReceivedEvent($payment, $loan),
+                    'payment.received'
+                );
             } else {
                 $this->logger->info('Payment amount exceeds loan amount to pay', [
                     'loanNumber' => $record['loanNumber'],
@@ -153,6 +178,13 @@ class PaymentImportCommand extends Command
                 $refundPayment->setState('refund');
 
                 $this->entityManager->persist($refundPayment);
+
+                // TODO: change event to include refund info
+                // TODO: do not send multiple sms/email to the same customer 
+                $this->eventDispatcher->dispatch(
+                    new PaymentReceivedEvent($payment, $loan, $refundAmount),
+                    'payment.received'
+                );
             }
 
             $this->entityManager->persist($payment);
@@ -168,6 +200,7 @@ class PaymentImportCommand extends Command
     {
         switch ($error['propertyPath']) {
             case 'refId':
+                // TODO: improve duplicate detection
                 return $error['message'] === 'Duplicate entry found for reference.'
                     ? PaymentImportCommand::DUPLICATE
                     : PaymentImportCommand::MISSING_REF;
@@ -179,6 +212,11 @@ class PaymentImportCommand extends Command
             case 'loanNumber':
                 return PaymentImportCommand::MISSING_LOAN_NUMBER;
             default:
+                // TODO; pass payment info
+                $this->eventDispatcher->dispatch(
+                    new FailedPaymentReportEvent($error),
+                    'payments.failed_report'
+                );
                 return PaymentImportCommand::UNKNOWN_ERROR;
         }
     }

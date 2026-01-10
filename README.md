@@ -129,11 +129,11 @@ DONE - - "No required field"
    When payment amount is less than matched load amount to pay
    DONE - Mark payment as assigned
 
-4. Implement communicaiton using Events:
+4. DONE - mplement communicaiton using Events:
 
-- Payment received: communication sent to email and|or phone if defined
-- Loan fully paid: communication sent to email and|or phone if defined
-- Failed payments report: support@example.com
+DONE - Payment received: communication sent to email and|or phone if defined
+DONE - Loan fully paid: communication sent to email and|or phone if defined
+DONE - Failed payments report: support@example.com
 
 5. Implement Console interface:
 
