@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Normalization\Csv;
+namespace App\Normalization\Api;
 
 use App\Contracts\Normalization\PaymentNormalizerInterface;
 use App\Transformers\DateTransformer;
@@ -18,12 +18,11 @@ class PaymentNormalizer implements PaymentNormalizerInterface
     {
         return [
             'paymentDate' => isset($record['paymentDate']) ? $this->dateTransformer->transform($record['paymentDate']) : null,
-            'firstName' => isset($record['payerName']) ? ucfirst(strtolower(trim($record['payerName']))) : null,
-            'lastName' => isset($record['payerSurname']) ? ucfirst(strtolower(trim($record['payerSurname']))) : null,
+            'firstName' => isset($record['firstname']) ? ucfirst(strtolower(trim($record['firstname']))) : null,
+            'lastName' => isset($record['lastname']) ? ucfirst(strtolower(trim($record['lastname']))) : null,
             'amount' => isset($record['amount']) ? (float) $record['amount'] : null,
-            'nationalSecurityNumber' => $record['nationalSecurityNumber'] ?? null,
             'description' => isset($record['description']) ? trim($record['description']) : null,
-            'refId' => isset($record['paymentReference']) ? strtoupper(trim($record['paymentReference'])) : null,
+            'refId' => isset($record['refId']) ? strtoupper(trim($record['refId'])) : null,
             'loanNumber' => isset($record['description']) ? $this->extractLoanNumber($record['description']) : null,
         ];
     }

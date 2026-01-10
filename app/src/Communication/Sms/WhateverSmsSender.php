@@ -8,6 +8,6 @@ class WhateverSmsSender implements SmsSenderInterface
 {
     public function send(string $phone, string $message): void
     {
-        echo "sms actually sent with message: $message \n";
+        // echo "sms actually sent with message: $message \n";
     }
 }

@@ -140,24 +140,26 @@ DONE -5. Implement Console interface:
 
 DONE -- Show payments by date `report --date=YYYY-MM-DD`
 
-7. Implement API and reuse existing classes
-   1. API (single payment) - **{app_url}/api/payment**
-      Request body example:
-      {
-      "firstname": "Lorem",
-      "lastname": "Ipsum",
-      "paymentDate": "2022-12-12T15:19:21+00:00",
-      "amount": "99.99",
-      "description": "Lorem ipsum dolorLN20221212 sit amet...",
-      "refId": "dda8b637-b2e8-4f79-a4af-d1d68e266bf5"
-      },
-      {
-      "firstname": "Lorem",
-      "lastname": "Ipsum",
-      "paymentDate": "2022-12-12T15:19:21+00:00",
-      "amount": "99.99",
-      "description": "LN20221212",
-      "refId": "130f8a89-51c9-47d0-a6ef-1aea54924d3b"
-      }
-   2. Errors:
-   - API: Duplicate entry - 409, rest of errors - 400, All fine - 2XX depending on implementation
+DONE - . Implement API and reuse existing classes
+DONE - . API (single payment) - **{app_url}/api/payment**
+Request body example:
+{
+"firstname": "Lorem",
+"lastname": "Ipsum",
+"paymentDate": "2022-12-12T15:19:21+00:00",
+"amount": "99.99",
+"description": "Lorem ipsum dolorLN20221212 sit amet...",
+"refId": "dda8b637-b2e8-4f79-a4af-d1d68e266bf5"
+},
+{
+"firstname": "Lorem",
+"lastname": "Ipsum",
+"paymentDate": "2022-12-12T15:19:21+00:00",
+"amount": "99.99",
+"description": "LN20221212",
+"refId": "130f8a89-51c9-47d0-a6ef-1aea54924d3b"
+} 2. Errors:
+
+- API: Duplicate entry - 409,
+  DONE - rest of errors - 400,
+  DONE - All fine - 2XX depending on implementation

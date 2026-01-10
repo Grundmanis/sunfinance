@@ -4,14 +4,11 @@ namespace App\Commands;
 
 use App\Contracts\Loggers\LoggerInterface;
 use App\Contracts\Services\CsvReaderInterface;
-use App\Entity\Payment;
 use App\Event\FailedPaymentReportEvent;
-use App\Event\LoanPaidEvent;
-use App\Event\PaymentReceivedEvent;
 use App\Logger\PaymentImportLogger;
 use App\Normalization\Csv\PaymentNormalizer;
+use App\Services\PaymentService;
 use App\Validation\PaymentValidator;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -36,24 +33,24 @@ class PaymentImportCommand extends Command
     private PaymentNormalizer $normalizer;
     private CsvReaderInterface $csvReader;
     private LoggerInterface $logger;
-    private EntityManagerInterface $entityManager;
     private EventDispatcherInterface $eventDispatcher;
+    private PaymentService $paymentService;
 
     public function __construct(
         PaymentValidator $validator,
         PaymentNormalizer $normalizer,
         CsvReaderInterface $csvReader,
         PaymentImportLogger $logger,
-        EntityManagerInterface $entityManager,
-        EventDispatcherInterface $eventDispatcher
+        EventDispatcherInterface $eventDispatcher,
+        PaymentService $paymentService
     ) {
         parent::__construct();
         $this->validator = $validator;
         $this->normalizer = $normalizer;
         $this->csvReader = $csvReader;
         $this->logger = $logger;
-        $this->entityManager = $entityManager;
         $this->eventDispatcher = $eventDispatcher;
+        $this->paymentService = $paymentService;
     }
 
     protected function configure(): void
@@ -100,97 +97,16 @@ class PaymentImportCommand extends Command
         }
 
         foreach ($normalizedRecords as $record) {
-            // TODO: move to validation logic
-            $loan = $this->entityManager->getRepository('App\Entity\Loan')
-                // TODO: add additional state filter
-                ->findOneBy(['reference' => $record['loanNumber']]);
-            if (!$loan) {
-                $this->logger->warning('Unknown loan number', [
-                    'loanNumber' => $record['loanNumber'],
-                ]);
-                return PaymentImportCommand::UNKNOWN_LOAN_NUMBER;
-            }
-
-            $payment = new Payment();
-            $payment->setLoanId($loan->getId());
-            $payment->setPaymentDate(new \DateTime($record['paymentDate']));
-            $payment->setFirstName($record['firstName']);
-            $payment->setLastName($record['lastName']);
-            $payment->setAmount($record['amount']);
-            $payment->setNationalSecurityNumber($record['nationalSecurityNumber'] ?? null);
-            $payment->setDescription($record['description']);
-            $payment->setRefId($record['refId']);
-            $payment->setLoanRef($record['loanNumber']);
-
-            // TODO: test precision issues with decimal calculations
-            if ($record['amount'] === $loan->getAmountToPay()) {
-                $this->logger->info('Payment matches loan amount to pay', [
-                    'loanNumber' => $record['loanNumber'],
-                ]);
-                // TODO: use constants for states
-                $loan->setState('paid');
-                $loan->setAmountToPay('0');
-                $this->entityManager->persist($loan);
-                $payment->setState('assigned');
-
-                // TODO: do not send multiple sms/email to the same customer 
-                $this->eventDispatcher->dispatch(
-                    new LoanPaidEvent($loan),
-                    'loan.fully_paid'
-                );
-            } else if ($record['amount'] < $loan->getAmountToPay()) {
-
-                $this->logger->info('Payment amount is less than loan amount to pay', [
-                    'loanNumber' => $record['loanNumber'],
-                ]);
-
-                $newAmountToPay = bcsub($loan->getAmountToPay(), $record['amount'], 2);
-                $loan->setAmountToPay($newAmountToPay);
-                $this->entityManager->persist($loan);
-                $payment->setState('assigned');
-
-                // TODO: do not send multiple sms/email to the same customer 
-                $this->eventDispatcher->dispatch(
-                    new PaymentReceivedEvent($payment, $loan),
-                    'payment.received'
-                );
-            } else {
-                $this->logger->info('Payment amount exceeds loan amount to pay', [
-                    'loanNumber' => $record['loanNumber'],
-                ]);
-                $loan->setState('paid');
-                $loan->setAmountToPay('0');
-
-                $payment->setState('partially_assigned');
-                $this->entityManager->persist($loan);
-
-                // DONE - Create refund payment as separate entity called "Payment Order" with all necessary information
-                $refundAmount = bcsub($record['amount'], $loan->getAmountToPay(), 2);
-                $refundPayment = new Payment();
-                $refundPayment->setLoanId($loan->getId());
-                $refundPayment->setPaymentDate(new \DateTime($record['paymentDate']));
-                $refundPayment->setFirstName($record['firstName']);
-                $refundPayment->setLastName($record['lastName']);
-                $refundPayment->setAmount($refundAmount);
-                $refundPayment->setNationalSecurityNumber($record['nationalSecurityNumber'] ?? null);
-                $refundPayment->setDescription('Refund for overpayment of loan ' . $record['loanNumber']);
-                $refundPayment->setRefId($record['refId'] . '-REFUND');
-                $refundPayment->setLoanRef($record['loanNumber']);
-                // TODO: use constants for states
-                $refundPayment->setState('refund');
-
-                $this->entityManager->persist($refundPayment);
-
-                // TODO: change event to include refund info
-                // TODO: do not send multiple sms/email to the same customer 
-                $this->eventDispatcher->dispatch(
-                    new PaymentReceivedEvent($payment, $loan, $refundAmount),
-                    'payment.received'
-                );
-            }
-
-            $this->entityManager->persist($payment);
-            $this->entityManager->flush();
+            // try catch ?
+            $result = $this->paymentService->processPayment($record);
+            // if ($result !== PaymentImportCommand::SUCCESS) {
+            //     $this->logger->warning('Payment processing error', [
+            //         'loanNumber' => $record['loanNumber'],
+            //         'refId' => $record['refId'],
+            //         'amount' => $record['amount'],
+            //     ]);
+            //     return $result;
+            // }
         }
 
         $output->writeln('<info>All records are valid!</info>');

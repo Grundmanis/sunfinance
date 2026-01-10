@@ -7,8 +7,6 @@ use Symfony\Component\Validator\Validation;
 
 class PaymentValidator
 {
-    private array $seenReferences = [];
-
     public function validate(array $record)
     {
         $validator = Validation::createValidator();
@@ -38,15 +36,7 @@ class PaymentValidator
         }
 
         // Check for duplicate references
-        if (isset($this->seenReferences[$record['refId']])) {
-            $errors[] = [
-                'propertyPath' => 'refId',
-                'invalidValue' => $record['refId'],
-                'message' => 'Duplicate entry found for reference.',
-            ];
-        } else {
-            $this->seenReferences[$record['refId']] = true;
-        }
+        // TODO: check duplicates in db
 
         // Check for loan number in description
         if (!preg_match('/LN\d{8}/', $record['description'])) {

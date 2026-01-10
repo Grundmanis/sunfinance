@@ -8,6 +8,6 @@ class SmtpEmailSender implements EmailSenderInterface
 {
     public function send(string $to, string $subject, string $body): void
     {
-        echo "mail actually sent with body: $body \n";
+        // echo "mail actually sent with body: $body \n";
     }
 }
