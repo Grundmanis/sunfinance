@@ -2,11 +2,12 @@
 
 namespace App\Entity;
 
+use App\Repository\PaymentRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: PaymentRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[ORM\Table(name: "payments")]
 class Payment

@@ -2,49 +2,66 @@
 
 namespace App\Validation;
 
-use Symfony\Component\Validator\Constraints as Assert;
+use App\DTO\PaymentDTO;
+use App\Repository\LoanRepository;
+use App\Repository\PaymentRepository;
 use Symfony\Component\Validator\Validation;
 
 class PaymentValidator
 {
-    public function validate(array $record)
-    {
-        $validator = Validation::createValidator();
-        $constraints = new Assert\Collection([
-            'paymentDate' => [new Assert\NotBlank(), new Assert\DateTime()],
-            'firstName' => new Assert\NotBlank(),
-            'lastName' => new Assert\NotBlank(),
-            'amount' => [
-                new Assert\NotBlank(),
-                new Assert\GreaterThan(0),
-            ],
-            'nationalSecurityNumber' => new Assert\Optional(),
-            'description' => new Assert\NotBlank(),
-            'refId' => new Assert\NotBlank(),
-            'loanNumber' => [new Assert\NotBlank(), new Assert\Regex('/LN\d{8}/')]
-        ]);
+    private LoanRepository $loanRepository;
+    private PaymentRepository $paymentRepository;
 
-        $violations = $validator->validate($record, $constraints);
+    // TODO: inject validator
+    // private ValidatorInterface $validator,
+    public function __construct(
+        LoanRepository $loanRepository,
+        PaymentRepository $paymentRepository
+    ) {
+        $this->loanRepository = $loanRepository;
+        $this->paymentRepository = $paymentRepository;
+    }
+
+    public function validate(PaymentDTO $dto): ValidationResult
+    {
+        $validator = Validation::createValidatorBuilder()
+            ->enableAttributeMapping()
+            ->getValidator();
+        $violations = $validator->validate($dto);
         $errors = [];
 
         foreach ($violations as $violation) {
             $errors[] = [
-                'propertyPath' => trim($violation->getPropertyPath(), '[]'), // remove brackets TODO: fix
+                'propertyPath' => (string) $violation->getPropertyPath(),
                 'invalidValue' => $violation->getInvalidValue(),
                 'message' => $violation->getMessage(),
             ];
         }
 
-        // Check for duplicate references
-        // TODO: check duplicates in db
+        // loan exists in db
+        $hasLoanNumberError = array_filter($errors, fn($e) => $e['propertyPath'] === 'loanNumber');
+        if (!$hasLoanNumberError && $dto->loanNumber !== null) {
+            $loanExists = $this->loanRepository->existsByReference($dto->loanNumber);
+            if (!$loanExists) {
+                $errors[] = [
+                    'propertyPath' => 'loanNumber',
+                    'invalidValue' => $dto->loanNumber,
+                    'message' => 'Loan not found for provided loan number.',
+                ];
+            }
+        }
 
-        // Check for loan number in description
-        if (!preg_match('/LN\d{8}/', $record['description'])) {
-            $errors[] = [
-                'propertyPath' => 'description',
-                'invalidValue' => $record['description'],
-                'message' => "Description must contain a loan number starting with 'LN', followed by 2 letters and 8 digits.",
-            ];
+        // payment is not duplicated in db
+        $hasRefIdError = array_filter($errors, fn($e) => $e['propertyPath'] === 'refId');
+        if (!$hasRefIdError && $dto->refId !== null) {
+            $paymentExists = $this->paymentRepository->existsByReference($dto->refId);
+            if ($paymentExists) {
+                $errors[] = [
+                    'propertyPath' => 'refId',
+                    'invalidValue' => $dto->refId,
+                    'message' => 'Payment with provided refId already exists.',
+                ];
+            }
         }
 
         return new ValidationResult(empty($errors), $errors);

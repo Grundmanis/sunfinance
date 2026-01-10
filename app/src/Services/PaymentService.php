@@ -7,6 +7,7 @@ use App\DTO\PaymentDTO;
 use App\Entity\Payment;
 use App\Event\LoanPaidEvent;
 use App\Event\PaymentReceivedEvent;
+use App\Repository\LoanRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
@@ -15,31 +16,23 @@ class PaymentService
     private EntityManagerInterface $entityManager;
     private LoggerInterface $logger;
     private EventDispatcherInterface $eventDispatcher;
+    private LoanRepository $loanRepository;
 
     public function __construct(
         EntityManagerInterface $entityManager,
         LoggerInterface $logger,
-        EventDispatcherInterface $eventDispatcher
+        EventDispatcherInterface $eventDispatcher,
+        LoanRepository $loanRepository
     ) {
         $this->entityManager = $entityManager;
         $this->logger = $logger;
         $this->eventDispatcher = $eventDispatcher;
+        $this->loanRepository = $loanRepository;
     }
 
-    // TODO: change array to DTO
     public function processPayment(PaymentDTO $paymentDTO)
     {
-        // TODO: move to validation logic
-        $loan = $this->entityManager->getRepository('App\Entity\Loan')
-            // TODO: add additional state filter
-            ->findOneBy(['reference' => $paymentDTO->loanNumber]);
-        if (!$loan) {
-            $this->logger->warning('Unknown loan number', [
-                'loanNumber' => $paymentDTO->loanNumber,
-            ]);
-            return;
-            // return PaymentImportCommand::UNKNOWN_LOAN_NUMBER;
-        }
+        $loan = $this->loanRepository->getByReference($paymentDTO->loanNumber);
 
         $payment = new Payment();
         $payment->setLoanId($loan->getId());

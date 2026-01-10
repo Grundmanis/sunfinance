@@ -37,9 +37,10 @@ class PaymentController
         }
 
         $payment = $this->paymentNormalizer->normalize($data);
-        $validationResult = $this->validator->validate($payment->toArray());
+        $validationResult = $this->validator->validate($payment);
 
         if (!$validationResult->isValid()) {
+            $this->logger->info('Payment validation failed', ['data' => $validationResult]);
             foreach ($validationResult->getErrors() as $error) {
                 $this->logger->warning('Validation error', [
                     'field' => $error['propertyPath'],
@@ -49,6 +50,8 @@ class PaymentController
                 return $this->mapErrorToExitCode($error);
             }
         }
+
+        $this->logger->info('validaiton good');
 
         $this->paymentService->processPayment($payment);
 
