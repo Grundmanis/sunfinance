@@ -16,7 +16,8 @@ RUN docker-php-ext-install \
     pdo_pgsql \
     pdo_mysql \
     intl \
-    zip
+    zip \
+    bcmath
 
 # Explicitly enable bundled extensions
 # RUN docker-php-ext-enable pdo_sqlite sqlite3

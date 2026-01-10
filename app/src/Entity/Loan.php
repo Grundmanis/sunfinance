@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Ramsey\Uuid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
@@ -10,6 +11,11 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: "loans")]
 class Loan
 {
+    public function __construct()
+    {
+        $this->id = $id ?? Uuid::uuid4()->toString();
+    }
+
     #[ORM\Id]
     #[ORM\Column(type: "guid", unique: true)]
     #[ORM\GeneratedValue(strategy: "NONE")]
@@ -26,6 +32,8 @@ class Loan
     #[ORM\Column(type: "string", length: 20)]
     #[Assert\NotBlank]
     private string $state;
+
+    // TODO: currency
 
     #[ORM\Column(type: "decimal", precision: 10, scale: 2)]
     #[Assert\NotBlank]
@@ -53,8 +61,6 @@ class Loan
     {
         $this->updatedAt = new \DateTime();
     }
-
-    // Getters and Setters
 
     public function getId(): ?string
     {

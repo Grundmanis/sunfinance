@@ -1,5 +1,7 @@
 <?php
 
+// simple seeder script to populate initial data
+
 use App\Entity\Customer;
 use App\Entity\Loan;
 
@@ -42,11 +44,16 @@ if ($jsonData === null && json_last_error() !== JSON_ERROR_NONE) {
 }
 
 foreach ($jsonData as $item) {
-    $customer = new Loan();
+    $loan = new Loan();
 
-    //
+    $loan->setId($item['id']);
+    $loan->setCustomerId($item['customerId']);
+    $loan->setReference($item['reference']);
+    $loan->setState($item['state']);
+    $loan->setAmountIssued($item['amount_issued']);
+    $loan->setAmountToPay($item['amount_to_pay']);
 
-    $entityManager->persist($customer);
+    $entityManager->persist($loan);
 }
 $entityManager->flush();
 
