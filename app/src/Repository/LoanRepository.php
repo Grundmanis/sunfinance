@@ -6,7 +6,7 @@ use Doctrine\ORM\EntityRepository;
 use App\Entity\Loan;
 use Error;
 
-final class LoanRepository extends EntityRepository
+class LoanRepository extends EntityRepository
 {
     public function existsByReference(string $reference): bool
     {

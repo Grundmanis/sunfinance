@@ -4,7 +4,7 @@ namespace App\Repository;
 
 use Doctrine\ORM\EntityRepository;
 
-final class PaymentRepository extends EntityRepository
+class PaymentRepository extends EntityRepository
 {
     public function existsByReference(string $reference): bool
     {

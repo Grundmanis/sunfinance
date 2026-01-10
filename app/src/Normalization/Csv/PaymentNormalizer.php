@@ -7,7 +7,7 @@ use App\DTO\PaymentDTO;
 use App\Utils\DateTransformer;
 use App\Utils\LoanNumberExtractor;
 
-final class PaymentNormalizer implements PaymentNormalizerInterface
+class PaymentNormalizer implements PaymentNormalizerInterface
 {
     public function normalize(array $record): PaymentDTO
     {

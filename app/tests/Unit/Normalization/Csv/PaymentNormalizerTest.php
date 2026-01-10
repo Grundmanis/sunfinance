@@ -3,7 +3,6 @@
 namespace Tests\Unit\Normalization\Csv;
 
 use App\Normalization\Csv\PaymentNormalizer;
-use App\Transformers\DateTransformer;
 use PHPUnit\Framework\TestCase;
 
 class PaymentNormalizerTest extends TestCase
@@ -12,7 +11,7 @@ class PaymentNormalizerTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->normalizer = new PaymentNormalizer(new DateTransformer());
+        $this->normalizer = new PaymentNormalizer();
     }
 
     public function testNormalizeValidRecord(): void
@@ -23,19 +22,20 @@ class PaymentNormalizerTest extends TestCase
             'payerSurname' => 'DOE',
             'amount' => '100.50',
             'nationalSecurityNumber' => '123456789',
-            'description' => 'Loan number LNAB12345678',
+            'description' => 'Loan number LN12345678',
             'paymentReference' => ' ref123 ',
         ];
 
         $normalized = $this->normalizer->normalize($record);
 
-        $this->assertEquals('2022-12-12 07:16:29', $normalized['paymentDate']);
-        $this->assertEquals('John', $normalized['firstName']);
-        $this->assertEquals('Doe', $normalized['lastName']);
-        $this->assertEquals(100.50, $normalized['amount']);
-        $this->assertEquals('123456789', $normalized['nationalSecurityNumber']);
-        $this->assertEquals('Loan number LNAB12345678', $normalized['description']);
-        $this->assertEquals('REF123', $normalized['refId']);
+        $this->assertEquals('2022-12-12 07:16:29', $normalized->paymentDate);
+        $this->assertEquals('John', $normalized->firstName);
+        $this->assertEquals('Doe', $normalized->lastName);
+        $this->assertEquals(100.50, $normalized->amount);
+        $this->assertEquals('123456789', $normalized->nationalSecurityNumber);
+        $this->assertEquals('Loan number LN12345678', $normalized->description);
+        $this->assertEquals('REF123', $normalized->refId);
+        $this->assertEquals('LN12345678', $normalized->loanNumber);
     }
 
     public function testNormalizeInvalidDate(): void
@@ -46,12 +46,12 @@ class PaymentNormalizerTest extends TestCase
             'payerSurname' => 'DOE',
             'amount' => '100.50',
             'nationalSecurityNumber' => '123456789',
-            'description' => 'Loan number LNAB12345678',
+            'description' => 'Loan number LNA2345678',
             'paymentReference' => ' ref123 ',
         ];
 
         $normalized = $this->normalizer->normalize($record);
 
-        $this->assertNull($normalized['paymentDate']);
+        $this->assertNull($normalized->paymentDate);
     }
 }

@@ -7,7 +7,7 @@ use App\Repository\LoanRepository;
 use App\Repository\PaymentRepository;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-final class PaymentValidator
+class PaymentValidator
 {
     public function __construct(
         private LoanRepository $loanRepository,

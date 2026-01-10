@@ -2,116 +2,134 @@
 
 namespace Tests\Unit\Validation;
 
+use App\DTO\PaymentDTO;
+use App\Repository\LoanRepository;
+use App\Repository\PaymentRepository;
 use App\Validation\PaymentValidator;
+use App\Validation\ValidationErrorType;
+use App\Validation\ValidationResult;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Validator\ConstraintViolation;
+use Symfony\Component\Validator\ConstraintViolationList;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class PaymentValidatorTest extends TestCase
 {
-    private PaymentValidator $validator;
+    private $loanRepository;
+    private $paymentRepository;
+    private $validator;
+    private PaymentValidator $paymentValidator;
 
     protected function setUp(): void
     {
-        $this->validator = new PaymentValidator();
+        $this->loanRepository = $this->createStub(LoanRepository::class);
+        $this->paymentRepository = $this->createStub(PaymentRepository::class);
+        $this->validator = $this->createStub(ValidatorInterface::class);
+
+        $this->paymentValidator = new PaymentValidator(
+            $this->loanRepository,
+            $this->paymentRepository,
+            $this->validator
+        );
     }
 
-    public function testValidRecord(): void
+    public function testValidPaymentDto(): void
     {
-        $record = [
-            'paymentDate' => '2023-10-01 12:00:00',
-            'firstName' => 'John',
-            'lastName' => 'Doe',
-            'amount' => 100.50,
-            'nationalSecurityNumber' => '123456789',
-            'description' => 'Loan number LN12345678',
-            'refId' => 'REF123',
-            'loanNumber' => 'LN12345678',
-        ];
+        $dto = new PaymentDTO();
+        $dto->loanNumber = 'LN123';
+        $dto->refId = 'PAY123';
 
-        $result = $this->validator->validate($record);
+        // No violations from Symfony validator
+        $this->validator
+            ->method('validate')
+            ->willReturn(new ConstraintViolationList());
 
+        // Loan exists
+        $this->loanRepository
+            ->method('existsByReference')
+            ->with('LN123')
+            ->willReturn(true);
+
+        // Payment does not exist
+        $this->paymentRepository
+            ->method('existsByReference')
+            ->with('PAY123')
+            ->willReturn(false);
+
+        $result = $this->paymentValidator->validate($dto);
+
+        $this->assertInstanceOf(ValidationResult::class, $result);
         $this->assertTrue($result->isValid());
         $this->assertEmpty($result->getErrors());
     }
 
-    public function testInvalidRecord(): void
+    public function testValidationViolations(): void
     {
-        $record = [
-            'paymentDate' => 'invalid-date',
-            'firstName' => '',
-            'lastName' => '',
-            'amount' => -50,
-            'nationalSecurityNumber' => null,
-            'description' => 'Invalid description',
-            'refId' => '',
-            'loanNumber' => 'LN12345678',
-        ];
+        $dto = new PaymentDTO();
+        $dto->loanNumber = 'LN123';
 
-        $result = $this->validator->validate($record);
+        $violation = new ConstraintViolation(
+            'Loan number cannot be blank.',
+            '',
+            [],
+            '',
+            'loanNumber',
+            ''
+        );
+
+        $this->validator
+            ->method('validate')
+            ->willReturn(new ConstraintViolationList([$violation]));
+
+        $result = $this->paymentValidator->validate($dto);
 
         $this->assertFalse($result->isValid());
-        $this->assertNotEmpty($result->getErrors());
-        $this->assertCount(6, $result->getErrors());
-
-        $errors = $result->getErrors();
-        $this->assertEquals('paymentDate', $errors[0]['propertyPath']);
-        $this->assertEquals('firstName', $errors[1]['propertyPath']);
-        $this->assertEquals('lastName', $errors[2]['propertyPath']);
-        $this->assertEquals('amount', $errors[3]['propertyPath']);
-        $this->assertEquals('refId', $errors[4]['propertyPath']);
-        $this->assertEquals('description', $errors[5]['propertyPath']);
+        $this->assertCount(1, $result->getErrors());
+        $this->assertSame('loanNumber', $result->getErrors()[0]['propertyPath']);
+        $this->assertSame(ValidationErrorType::VALIDATION, $result->getErrors()[0]['type']);
     }
 
-    public function testDuplicateRefId(): void
+    public function testLoanNotFound(): void
     {
-        $record1 = [
-            'paymentDate' => '2023-10-01 12:00:00',
-            'firstName' => 'John',
-            'lastName' => 'Doe',
-            'amount' => 100.50,
-            'nationalSecurityNumber' => '123456789',
-            'description' => 'Loan number LN12345678',
-            'refId' => 'REF123',
-            'loanNumber' => 'LN12345678',
-        ];
+        $dto = new PaymentDTO();
+        $dto->loanNumber = 'LN999';
 
-        $record2 = [
-            'paymentDate' => '2023-10-02 12:00:00',
-            'firstName' => 'Jane',
-            'lastName' => 'Smith',
-            'amount' => 200.75,
-            'nationalSecurityNumber' => '987654321',
-            'description' => 'Loan number LN87654321',
-            'refId' => 'REF123',
-            'loanNumber' => 'LN12345678',
-        ];
+        $this->validator
+            ->method('validate')
+            ->willReturn(new ConstraintViolationList());
 
-        $this->validator->validate($record1);
-        $result = $this->validator->validate($record2);
+        $this->loanRepository
+            ->method('existsByReference')
+            ->with('LN999')
+            ->willReturn(false);
+
+        $result = $this->paymentValidator->validate($dto);
 
         $this->assertFalse($result->isValid());
-        $this->assertNotEmpty($result->getErrors());
-        $this->assertEquals('refId', $result->getErrors()[0]['propertyPath']);
-        $this->assertStringContainsString('Duplicate entry found for reference.', $result->getErrors()[0]['message']);
+        $this->assertCount(1, $result->getErrors());
+        $this->assertSame('loanNumber', $result->getErrors()[0]['propertyPath']);
+        $this->assertSame(ValidationErrorType::NOT_FOUND, $result->getErrors()[0]['type']);
     }
 
-    public function testMissingLoanNumberInDescription(): void
+    public function testDuplicatePayment(): void
     {
-        $record = [
-            'paymentDate' => '2023-10-01 12:00:00',
-            'firstName' => 'John',
-            'lastName' => 'Doe',
-            'amount' => 100.50,
-            'nationalSecurityNumber' => '123456789',
-            'description' => 'Invalid description',
-            'refId' => 'REF123',
-            'loanNumber' => 'LN12345678',
-        ];
+        $dto = new PaymentDTO();
+        $dto->refId = 'PAY123';
 
-        $result = $this->validator->validate($record);
+        $this->validator
+            ->method('validate')
+            ->willReturn(new ConstraintViolationList());
+
+        $this->paymentRepository
+            ->method('existsByReference')
+            ->with('PAY123')
+            ->willReturn(true);
+
+        $result = $this->paymentValidator->validate($dto);
 
         $this->assertFalse($result->isValid());
-        $this->assertNotEmpty($result->getErrors());
-        $this->assertEquals('description', $result->getErrors()[0]['propertyPath']);
-        $this->assertStringContainsString('must contain a loan number', $result->getErrors()[0]['message']);
+        $this->assertCount(1, $result->getErrors());
+        $this->assertSame('refId', $result->getErrors()[0]['propertyPath']);
+        $this->assertSame(ValidationErrorType::DUPLICATE, $result->getErrors()[0]['type']);
     }
 }
