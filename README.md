@@ -136,9 +136,9 @@ DONE - Payment received: communication sent to email and|or phone if defined
 DONE - Loan fully paid: communication sent to email and|or phone if defined
 DONE - Failed payments report: support@example.com
 
-5. Implement Console interface:
+DONE -5. Implement Console interface:
 
-- Show payments by date `report --date=YYYY-MM-DD`
+DONE -- Show payments by date `report --date=YYYY-MM-DD`
 
 7. Implement API and reuse existing classes
    1. API (single payment) - **{app_url}/api/payment**
