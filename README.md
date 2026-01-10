@@ -11,7 +11,8 @@ make up
 make down -
 make logs - Enter Docker logs
 make cli - Enter PHP container
-make import
+make import file=exampleData/import/valid-payments.csv
+make report date=2024-01-01
 make test
 
 Api:
@@ -103,7 +104,7 @@ Process:
    DONE - (required - loan number is required in description) description - whatever + has loan number in description. Consists of 2 letters and 8 numbers, starts with LN.
    DONE - (required) paymentReference - ffsd2342134 / refId
 
-Loop through every record and: 2. Validate:
+DONE Loop through every record and: 2. Validate:
 
 DONE - duplicate entry (paymentReference or refId)
 DONE - negative amount
@@ -117,17 +118,17 @@ DONE - All fine - 0,
 DONE - 4 - "No laon number in description",
 DONE - - "No required field"
 
-3. Save to store with following logic:
-   DONE When payment amount equals to matched loan amount to pay
+DONE 3. Save to store with following logic:
+DONE When payment amount equals to matched loan amount to pay
 
-   DONE - Mark loan as paid
-   DONE - Mark payment as assigned
-   When payment amount is greater than matched loan amount to pay
-   DONE - Mark loan as paid
-   DONE - Mark payment as partially assigned
-   DONE - Create refund payment as separate entity called "Payment Order" with all necessary information
-   When payment amount is less than matched load amount to pay
-   DONE - Mark payment as assigned
+DONE - Mark loan as paid
+DONE - Mark payment as assigned
+When payment amount is greater than matched loan amount to pay
+DONE - Mark loan as paid
+DONE - Mark payment as partially assigned
+DONE - Create refund payment as separate entity called "Payment Order" with all necessary information
+DONE When payment amount is less than matched load amount to pay
+DONE - Mark payment as assigned
 
 4. DONE - mplement communicaiton using Events:
 

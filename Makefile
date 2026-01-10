@@ -12,6 +12,9 @@ cli:
 
 import:
 	docker compose exec -w /var/www/app php php bin/console import $(file)
+	
+report:
+	docker compose exec -w /var/www/app php php bin/console report $(date)
 
 test:
 	docker compose exec php vendor/bin/phpunit

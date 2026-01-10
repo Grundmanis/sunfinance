@@ -66,6 +66,7 @@ class PaymentImportCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        // Try catch ?
         $this->logger->info('Payment import started.');
 
         $filePath = $input->getArgument('file');
@@ -163,6 +164,7 @@ class PaymentImportCommand extends Command
                 $payment->setState('partially_assigned');
                 $this->entityManager->persist($loan);
 
+                // DONE - Create refund payment as separate entity called "Payment Order" with all necessary information
                 $refundAmount = bcsub($record['amount'], $loan->getAmountToPay(), 2);
                 $refundPayment = new Payment();
                 $refundPayment->setLoanId($loan->getId());
