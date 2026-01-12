@@ -10,6 +10,7 @@ final class ApiErrorResponder
     {
         $type = $error['type'] ?? 'validation';
         $message = $error['message'] ?? 'Unknown error';
+
         switch ($type) {
             case 'duplicate':
                 $status = 409;
