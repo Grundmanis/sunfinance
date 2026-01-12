@@ -2,13 +2,13 @@
 
 namespace App\Commands;
 
-use App\Contracts\Loggers\LoggerInterface;
 use App\Contracts\Services\CsvReaderInterface;
 use App\Event\FailedPaymentReportEvent;
 use App\Logger\PaymentImportLogger;
 use App\Normalization\Csv\PaymentNormalizer;
 use App\Services\PaymentService;
 use App\Validation\PaymentValidator;
+use Exception;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -29,28 +29,15 @@ final class PaymentImportCommand extends Command
     public const UNKNOWN_LOAN_NUMBER = 7;
     public const UNKNOWN_ERROR = 99;
 
-    private PaymentValidator $validator;
-    private PaymentNormalizer $normalizer;
-    private CsvReaderInterface $csvReader;
-    private LoggerInterface $logger;
-    private EventDispatcherInterface $eventDispatcher;
-    private PaymentService $paymentService;
-
     public function __construct(
-        PaymentValidator $validator,
-        PaymentNormalizer $normalizer,
-        CsvReaderInterface $csvReader,
-        PaymentImportLogger $logger,
-        EventDispatcherInterface $eventDispatcher,
-        PaymentService $paymentService
+        private readonly PaymentValidator $validator,
+        private readonly PaymentNormalizer $normalizer,
+        private readonly CsvReaderInterface $csvReader,
+        private readonly PaymentImportLogger $logger,
+        private readonly EventDispatcherInterface $eventDispatcher,
+        private readonly PaymentService $paymentService
     ) {
         parent::__construct();
-        $this->validator = $validator;
-        $this->normalizer = $normalizer;
-        $this->csvReader = $csvReader;
-        $this->logger = $logger;
-        $this->eventDispatcher = $eventDispatcher;
-        $this->paymentService = $paymentService;
     }
 
     protected function configure(): void
@@ -63,7 +50,6 @@ final class PaymentImportCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        // Try catch ?
         $this->logger->info('Payment import started.');
 
         $filePath = $input->getArgument('file');
@@ -77,11 +63,11 @@ final class PaymentImportCommand extends Command
         $records = $this->csvReader->getRecords();
 
         $normalizedRecords = [];
-
         foreach ($records as $record) {
             $record = $this->normalizer->normalize($record);
             $validationResult = $this->validator->validate($record);
 
+            // exist on first validation error
             if (!$validationResult->isValid()) {
                 foreach ($validationResult->getErrors() as $error) {
                     $this->logger->warning('Validation error', [
@@ -97,23 +83,21 @@ final class PaymentImportCommand extends Command
         }
 
         foreach ($normalizedRecords as $record) {
-            // try catch ?
-            $result = $this->paymentService->createPayment($record);
-            // if ($result !== PaymentImportCommand::SUCCESS) {
-            //     $this->logger->warning('Payment processing error', [
-            //         'loanNumber' => $record['loanNumber'],
-            //         'refId' => $record['refId'],
-            //         'amount' => $record['amount'],
-            //     ]);
-            //     return $result;
-            // }
+            try {
+                $this->paymentService->createPayment($record);
+            } catch (Exception $e) {
+                return $this->mapErrorToExitCode([
+                    'propertyPath' => 'exception',
+                    'invalidValue' => null,
+                    'message' => $e->getMessage(),
+                ]);
+            }
         }
 
-        $output->writeln('<info>All records are valid!</info>');
+        $output->writeln('<info>All payments are saved!</info>');
         return PaymentImportCommand::SUCCESS;
     }
 
-    // TODO: move out
     private function mapErrorToExitCode(array $error): int
     {
         switch ($error['propertyPath']) {
@@ -130,9 +114,9 @@ final class PaymentImportCommand extends Command
             case 'loanNumber':
                 return PaymentImportCommand::MISSING_LOAN_NUMBER;
             default:
-                // TODO; pass payment info
+                // FIXME: pass payment info
                 $this->eventDispatcher->dispatch(
-                    new FailedPaymentReportEvent($error),
+                    new FailedPaymentReportEvent($error['message']),
                     'payments.failed_report'
                 );
                 return PaymentImportCommand::UNKNOWN_ERROR;
