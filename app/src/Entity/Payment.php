@@ -22,6 +22,7 @@ class Payment
     #[ORM\GeneratedValue(strategy: "NONE")]
     private ?string $id = null;
 
+    // TODO: relation
     #[ORM\Column(type: "guid")]
     #[Assert\NotBlank]
     private string $loanId;

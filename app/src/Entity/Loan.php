@@ -22,6 +22,7 @@ class Loan
     #[ORM\GeneratedValue(strategy: "NONE")]
     private ?string $id = null;
 
+    // TODO: relation
     #[ORM\Column(type: "guid")]
     #[Assert\NotBlank]
     private string $customerId;
@@ -35,7 +36,6 @@ class Loan
     private LoanState $state;
 
     // TODO: currency
-
     #[ORM\Column(type: "decimal", precision: 10, scale: 2)]
     #[Assert\NotBlank]
     private string $amountIssued;

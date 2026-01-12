@@ -15,7 +15,7 @@ class PaymentEventDispatcher
 
     public function dispatchPaymentReceived(Payment $payment, Loan $loan, ?Payment $refundPayment = null): void
     {
-        $this->dispatcher->dispatch(new PaymentReceivedEvent($payment, $loan, $refundPayment), 'payment.received');
+        $this->dispatcher->dispatch(new PaymentReceivedEvent($payment, $loan, $refundPayment), 'payment.received'); // TODO: enums for the events
     }
 
     public function dispatchLoanPaid(Loan $loan): void

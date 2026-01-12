@@ -40,20 +40,11 @@ final class PaymentController
 
         if (!$validationResult->isValid()) {
             $this->logger->info('Payment validation failed', ['data' => $validationResult]);
-            return $this->mapErrorToExitCode($validationResult->getErrors()[0]);
+            return ApiErrorResponder::toResponse($validationResult->getErrors()[0]);
         }
 
         $payment = $this->paymentService->createPayment($dto);
 
         return new JsonResponse($this->paymentNormalizer->denormalize($payment), 201);
-    }
-
-    // TODO: move out
-    private function mapErrorToExitCode(array $error): JsonResponse
-    {
-        if ($error['type'] === 'duplicate') { // TODO: const
-            return new JsonResponse(['error' => $error['message']], 409);
-        }
-        return new JsonResponse(['error' => $error['message']], 400);
     }
 }
