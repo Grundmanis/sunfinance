@@ -2,7 +2,7 @@
 
 namespace App\Logger;
 
-final class PaymentImportLogger extends MainLogger
+class PaymentImportLogger extends MainLogger
 {
     public function __construct()
     {
