@@ -9,11 +9,26 @@ final class ApiErrorResponder
     public static function toResponse(array $error): JsonResponse
     {
         $type = $error['type'] ?? 'validation';
-        return match ($type) {
-            'duplicate' => new JsonResponse(['error' => $error['message']], 409),
-            'notFound' => new JsonResponse(['error' => $error['message']], 400),
-            'validation' => new JsonResponse(['error' => $error['message']], 400),
-            default => new JsonResponse(['error' => $error['message']], 400),
-        };
+        $message = $error['message'] ?? 'Unknown error';
+        switch ($type) {
+            case 'duplicate':
+                $status = 409;
+                $payload = ['error' => $message];
+                break;
+            case 'notFound':
+            case 'not_found':
+                $status = 404;
+                $payload = ['error' => $message];
+                break;
+            case 'validation':
+            default:
+                $property = $error['propertyPath'] ?? null;
+                $text = $property ? "[$property] $message" : $message;
+                $status = 400;
+                $payload = ['error' => $text];
+                break;
+        }
+
+        return new JsonResponse($payload, $status);
     }
 }
