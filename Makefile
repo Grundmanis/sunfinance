@@ -10,12 +10,6 @@ logs:
 cli:
 	docker compose exec php sh
 
-import:
-	docker compose exec -w /var/www/app php php bin/console import $(file)
-	
-report:
-	docker compose exec -w /var/www/app php php bin/console report $(date)
-
 test:
 	docker compose exec php vendor/bin/phpunit
 
@@ -24,6 +18,12 @@ migrate:
 
 seed:
 	docker compose exec -w /var/www/app php php scripts/seeder.php
+
+import:
+	docker compose exec -w /var/www/app php php bin/console import $(file)
+	
+report:
+	docker compose exec -w /var/www/app php php bin/console report $(date)
 
 drop:
 	docker compose exec -w /var/www/app php php scripts/drop.php

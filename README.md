@@ -1,165 +1,181 @@
-# Run
+# Project README
 
-1. Run docker https://www.docker.com/
-2. Run project with
-   make up
-   or
-   docker composer up --build
+A Dockerized PHP application with CLI tools, API, database, migrations, seeding, and automated tests.
 
-Other commands:
+---
+
+## 🚀 Quick Start
+
+### 1. Install Docker
+
+Make sure Docker is installed and running:
+
+- [https://www.docker.com/](https://www.docker.com/)
+
+### 2. Start the project
+
+You can start the project using **Make** (recommended) or plain Docker Compose:
+
+```bash
 make up
-make down -
-make logs - Enter Docker logs
-make cli - Enter PHP container
-make import file=exampleData/import/valid-payments.csv
-make report date=2024-01-01
-make test
+```
 
-Api:
-http://localhost:8080
+or
 
-CLI:
-docker compose exec php php import.php
+```bash
+docker compose up --build
+```
 
-Package installation:
-docker compose exec php composer require --dev phpunit/phpunit
+### 3. Run database migrations
 
-Test:
-make test
+After the containers are up, run migrations **once**:
 
-Db logs:
-docker compose logs -f db
-
-To run migrations once:
+```bash
 make migrate
+```
 
-To seed:
+### 4. Seed the database
+
+Populate the database with initial / test data **once**:
+
+```bash
 make seed
+```
 
-The plan:
+The API will be available at:
 
-Stack:
-Doctrine - storage
-Symfony Validator - validation
-Monolog - logging
-Doctrine Migrations - migration/seeds
-Symfony Console - import/report
-Symfony Dotenv - .env
-phpunit - test
-league/csv - csv handling
+```
+POST http://localhost:8080/api/payment
+```
 
-Api:
-symfony/http-foundation - request/response objects
-symfony/routing - routing
+Request example:
 
-Preparations:
+```
+   {
+    "firstname": "Lorem",
+    "lastname": "Ipsum",
+    "paymentDate": "2022-12-12T15:19:21+00:00",
+    "amount": "99.99",
+    "description": "Lorem ipsum dolorLN20221212 sit amet...",
+    "refId": "dda8b637-b2e8-4f79-a4af-d1d68e266bf5"
+   }
+```
 
-1. Customer class
-   "id": "c539792e-7773-4a39-9cf6-f273b2581438",
-   "firstname": "Pupa",
-   "lastname": "Lupa",
-   "ssn": "0987654321", ?? not needed?
-   "email": "pupa.lupa@example.com"
+Another request example:
 
-2. Loan class
-   "id": "51ed9314-955c-4014-8be2-b0e2b13588a5",
-   "customerId": "c539792e-7773-4a39-9cf6-f273b2581438",
-   "reference": "LN12345678",
-   "state": "ACTIVE",
-   "amount_issued": "100.00", // camelCase
-   "amount_to_pay": "120.00" // camelCase
-   "createdAt"
-   "updatedAt"
+```
+ {
+    "firstname": "Lorem",
+    "lastname": "Ipsum",
+    "paymentDate": "2022-12-12T15:19:21+00:00",
+    "amount": "99.99",
+    "description": "LN20221212",
+    "refId": "130f8a89-51c9-47d0-a6ef-1aea54924d34"
+}
+```
 
-3. Payment class
-   "id": "c539792e-7773-4a39-9cf6-f273b2581438",
-   "loanId": "51ed9314-955c-4014-8be2-b0e2b13588a5",
-   "loanRef" optional, for audit
-   "fistName" ? payment can be made by someone else
-   "lastName" ? payment can be made by someone else
-   "createdAt"
-   "state": "ASSIGNED", // REFUND
-   "paymentDate"
-   "amount" 99 and -99
-   "refId" : external ref id string
-   "descripton": "text whatever"
-   "nationalSecurityNumber" ? nullable - we save since we receive it by requirement
+And another request example:
 
-4. Create logger - use monolib
-
-5. Use sqlite for speed and simplicity - doctrine
-
-6. Migrate and seed customers.json - sumfony migration
-   2.1. Migrate and seed loans.json
-   2.2. Migrate and payments
-
-Process:
-
-1. DONE - Importing csv file which contains following fields: **import --file=<FILE_PATH>**
-   DONE - (required) paymentDate - "Wed, 14 Dec 2022 11:20:45 +0000" / 20221310235959
-   DONE - (required) payerName - Pupa / Armands
-   DONE - (required) payerSurname - Lupa / Grundmanis
-   DONE - (required) amount - 17.99 / -20
-   DONE - (required?) nationalSecurityNumber - 1234567890 / null
-   DONE - (required - loan number is required in description) description - whatever + has loan number in description. Consists of 2 letters and 8 numbers, starts with LN.
-   DONE - (required) paymentReference - ffsd2342134 / refId
-
-DONE Loop through every record and: 2. Validate:
-
-DONE - duplicate entry (paymentReference or refId)
-DONE - negative amount
-DONE - invalid date
-DONE - Get Loan number , error "4" - no loan number in description.
-DONE - 2.1. Create ResponseError class for Console -
-DONE - Duplicate entry - 1,
-DONE - Negative amount - 2,
-DONE - Invalid date - 3,
-DONE - All fine - 0,
-DONE - 4 - "No laon number in description",
-DONE - - "No required field"
-
-DONE 3. Save to store with following logic:
-DONE When payment amount equals to matched loan amount to pay
-
-DONE - Mark loan as paid
-DONE - Mark payment as assigned
-When payment amount is greater than matched loan amount to pay
-DONE - Mark loan as paid
-DONE - Mark payment as partially assigned
-DONE - Create refund payment as separate entity called "Payment Order" with all necessary information
-DONE When payment amount is less than matched load amount to pay
-DONE - Mark payment as assigned
-
-4. DONE - mplement communicaiton using Events:
-
-DONE - Payment received: communication sent to email and|or phone if defined
-DONE - Loan fully paid: communication sent to email and|or phone if defined
-DONE - Failed payments report: support@example.com
-
-DONE -5. Implement Console interface:
-
-DONE -- Show payments by date `report --date=YYYY-MM-DD`
-
-DONE - . Implement API and reuse existing classes
-DONE - . API (single payment) - **{app_url}/api/payment**
-Request body example:
+```
 {
-"firstname": "Lorem",
-"lastname": "Ipsum",
-"paymentDate": "2022-12-12T15:19:21+00:00",
-"amount": "99.99",
-"description": "Lorem ipsum dolorLN20221212 sit amet...",
-"refId": "dda8b637-b2e8-4f79-a4af-d1d68e266bf5"
-},
-{
-"firstname": "Lorem",
-"lastname": "Ipsum",
-"paymentDate": "2022-12-12T15:19:21+00:00",
-"amount": "99.99",
-"description": "LN20221212",
-"refId": "130f8a89-51c9-47d0-a6ef-1aea54924d3b"
-} 2. Errors:
+    "firstname": "Lorem",
+    "lastname": "Ipsum",
+    "paymentDate": "2022-12-12T15:19:21+00:00",
+    "amount": "70",
+    "description": "LN55522533",
+    "refId": "130f8a89-51c9-47d0-a6ef-1aea54924d340"
+}
+```
 
-- API: Duplicate entry - 409,
-  DONE - rest of errors - 400,
-  DONE - All fine - 2XX depending on implementation
+---
+
+## 📦 Available Make Commands
+
+| Command                             | Description                             |
+| ----------------------------------- | --------------------------------------- |
+| `make up`                           | Start all containers                    |
+| `make down`                         | Stop and remove containers              |
+| `make logs`                         | View Docker logs                        |
+| `make cli`                          | Enter the PHP container                 |
+| `make test`                         | Run the test suite                      |
+| `make migrate`                      | Run database migrations (once)          |
+| `make seed`                         | Seed the database                       |
+| `make drop`                         | Drop the databae                        |
+| `make import file=path/to/file.csv` | Import payments from CSV (from app dir) |
+| `make report date=YYYY-MM-DD`       | Generate a report for a specific date   |
+
+---
+
+## 🧪 Testing
+
+Run all tests:
+
+```bash
+make test
+```
+
+---
+
+## 🖥 CLI Usage
+
+You can execute CLI commands directly inside the PHP container.
+
+### Enter PHP container
+
+```bash
+make cli
+```
+
+or
+
+```bash
+docker compose exec php bash
+```
+
+### Run import manually
+
+```bash
+docker compose exec -w /var/www/app php php bin/console import path/to/file/in/app/folder
+```
+
+---
+
+## 🗄 Database
+
+### View database logs
+
+```bash
+docker compose logs -f db
+```
+
+### Run migrations (once)
+
+```bash
+make migrate
+```
+
+### Seed database
+
+```bash
+make seed
+```
+
+---
+
+## 📡 API
+
+Base URL:
+
+```
+http://localhost:8080
+```
+
+Make sure containers are running before accessing the API.
+
+---
+
+## 🏗 Architecture & Project Structure
+
+Currently project stucture has technical grouping for tge easier navigation
+
+---
