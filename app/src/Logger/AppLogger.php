@@ -6,6 +6,6 @@ final class AppLogger extends MainLogger
 {
     public function __construct()
     {
-        parent::__construct('app', 'logs/app.log');
+        parent::__construct('app');
     }
 }

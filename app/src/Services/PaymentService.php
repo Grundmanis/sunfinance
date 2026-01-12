@@ -66,7 +66,7 @@ class PaymentService
         $this->entityManager->persist($payment);
         $this->entityManager->persist($refundPayment);
 
-        $this->paymentEventDispatcher->dispatchPaymentReceived($payment, $loan, $refundAmount);
+        $this->paymentEventDispatcher->dispatchPaymentReceived($payment, $loan, $refundPayment);
         $this->paymentEventDispatcher->dispatchLoanPaid($loan);
 
         return $payment;

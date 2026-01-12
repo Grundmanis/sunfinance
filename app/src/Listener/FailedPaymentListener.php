@@ -7,22 +7,17 @@ use App\Event\FailedPaymentReportEvent;
 
 final class FailedPaymentListener
 {
-    private readonly EmailSenderInterface $emailSender;
-
     public function __construct(
-        EmailSenderInterface $emailSender,
-    ) {
-        $this->emailSender = $emailSender;
-    }
+        private readonly EmailSenderInterface $emailSender,
+    ) {}
 
     public function __invoke(FailedPaymentReportEvent $event): void
     {
-        // TODO: separate class + pass payment details to email body
-        // TODO: USE IT 
+        // FIXME: separate class + pass payment details to email body
         $this->emailSender->send(
             to: "support@example.com",
-            subject: 'Failed payment report',
-            body: "Thx 4 the payment"
+            subject: "Failed Payment Report, ID: " . $event->payment->getId(),
+            body: "A payment has failed. Please review the payment details in the system."
         );
     }
 }

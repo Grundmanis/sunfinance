@@ -6,9 +6,11 @@ use App\Contracts\Communication\EmailSenderInterface;
 use App\Contracts\Communication\SmsSenderInterface;
 use App\Contracts\Loggers\LoggerInterface;
 use App\Contracts\Services\CsvReaderInterface;
+use App\Entity\Customer;
 use App\Entity\Loan;
 use App\Entity\Payment;
 use App\Logger\AppLogger;
+use App\Repository\CustomerRepository;
 use App\Repository\LoanRepository;
 use App\Repository\PaymentRepository;
 use App\Services\CsvReader;
@@ -48,6 +50,9 @@ return (function () {
             return \Symfony\Component\Validator\Validation::createValidatorBuilder()
                 ->enableAttributeMapping()
                 ->getValidator();
+        }),
+        CustomerRepository::class => DI\factory(function (EntityManagerInterface $em) {
+            return $em->getRepository(Customer::class);
         }),
     ]);
 

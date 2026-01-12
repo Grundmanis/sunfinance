@@ -3,24 +3,35 @@
 namespace App\Listener;
 
 use App\Contracts\Communication\EmailSenderInterface;
+use App\Contracts\Loggers\LoggerInterface;
 use App\Event\LoanPaidEvent;
+use App\Repository\CustomerRepository;
 
 final class LoanPaidEmailListener
 {
-    private readonly EmailSenderInterface $emailSender;
-
     public function __construct(
-        EmailSenderInterface $emailSender,
-    ) {
-        $this->emailSender = $emailSender;
-    }
+        private readonly EmailSenderInterface $emailSender,
+        private readonly CustomerRepository $customerRepository,
+        private readonly LoggerInterface $logger,
+    ) {}
 
     public function __invoke(LoanPaidEvent $event): void
     {
-        // TODO: email Loan paid class should be implemented
-        // TODO: Get phone number from loan or user entity
+        // FIXME: implement relation in Loan entity to get customer directly 
+        $customer = $this->customerRepository->find($event->loan->getCustomerId());
+        if (!$customer) {
+            $this->logger->error('Customer not found for loan ID: ' . $event->loan->getId());
+            return;
+        }
+
+        if (!$customer->getEmail()) {
+            $this->logger->info('Customer doesnt have an email, skipping');
+            return;
+        }
+
+        // FIXME: create a LoanPaidEmail class to handle email content
         $this->emailSender->send(
-            to: "test@test.lv",
+            to: $customer->getEmail(),
             subject: 'Your loan has been paid off',
             body: "Thx 4 the payment"
         );

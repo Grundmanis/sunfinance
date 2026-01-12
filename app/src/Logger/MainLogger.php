@@ -9,24 +9,27 @@ use App\Factory\LoggerFactory;
 abstract class MainLogger implements LoggerInterface
 {
     protected Logger $logger;
+    private string $category;
 
-    public function __construct(string $category, string $logPath)
+    public function __construct(string $category, string $logPath = "logs/app.log")
     {
-        $this->logger = LoggerFactory::createLogger($category, $logPath);
+        // Or category can be used to create different loggers
+        $this->logger = LoggerFactory::createLogger('app', $logPath);
+        $this->category = $category;
     }
 
     public function info(string $message, array $context = []): void
     {
-        $this->logger->warning($message, $context);
+        $this->logger->warning("[$this->category] $message", $context);
     }
 
     public function warning(string $message, array $context = []): void
     {
-        $this->logger->warning($message, $context);
+        $this->logger->warning("[$this->category] $message", $context);
     }
 
     public function error(string $message, array $context = []): void
     {
-        $this->logger->error($message, $context);
+        $this->logger->error("[$this->category] $message", $context);
     }
 }

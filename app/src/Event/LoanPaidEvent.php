@@ -2,7 +2,9 @@
 
 namespace App\Event;
 
+use App\Entity\Loan;
+
 class LoanPaidEvent
 {
-    // TODO: empty?
+    public function __construct(public readonly Loan $loan) {}
 }

@@ -3,23 +3,33 @@
 namespace App\Listener;
 
 use App\Contracts\Communication\SmsSenderInterface;
+use App\Contracts\Loggers\LoggerInterface;
 use App\Event\PaymentReceivedEvent;
+use App\Repository\CustomerRepository;
 
 final class PaymentReceivedSmsListener
 {
-    private readonly SmsSenderInterface $smsSender;
-
     public function __construct(
-        SmsSenderInterface $smsSender,
-    ) {
-        $this->smsSender = $smsSender;
-    }
+        private readonly SmsSenderInterface $smsSender,
+        private readonly CustomerRepository $customerRepository,
+        private readonly LoggerInterface $logger
+    ) {}
 
     public function __invoke(PaymentReceivedEvent $event): void
     {
-        // TODO: Get phone number from loan or user entity
+        $customer = $this->customerRepository->find($event->loan->getCustomerId());
+        if (!$customer) {
+            $this->logger->error('Customer not found for loan ID: ' . $event->loan->getId());
+            return;
+        }
+
+        if (!$customer->getPhoneNumber()) {
+            $this->logger->info('Customer doesnt have a phone number, skipping');
+            return;
+        }
+
         $this->smsSender->send(
-            "+371222333444",
+            $customer->getPhoneNumber(),
             'Payment received. Thank you!',
         );
     }
