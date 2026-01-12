@@ -94,7 +94,7 @@ final class PaymentImportCommand extends Command
             }
         }
 
-        $output->writeln('<info>All payments are saved!</info>');
+        $output->writeln("<info>All payments are saved (" . count($normalizedRecords) . ") !</info>");
         return PaymentImportCommand::SUCCESS;
     }
 

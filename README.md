@@ -106,6 +106,32 @@ And another request example:
 
 ---
 
+## 📦 Importing
+
+Currently docker conf sees the files only within the app folder , so to import anything - move it to app folder pls , yut it should be configured
+
+Existing examples:
+
+(validation errors)
+
+```bash
+make import file=exampleData/import/payments.csv
+```
+
+(all good)
+
+```bash
+make import file=exampleData/import/valid-payments.csv
+```
+
+(single payment)
+
+```bash
+make import file=exampleData/import/valid-payments.csv
+```
+
+---
+
 ## 🧪 Testing
 
 Run all tests:
