@@ -3,8 +3,8 @@
 namespace App\Commands;
 
 use App\Contracts\Loggers\LoggerInterface;
-use App\Entity\Payment;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Repository\PaymentRepository;
+use App\Utils\DateUtil;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -14,14 +14,11 @@ final class PaymentReportCommand extends Command
 {
     protected static $defaultName = 'report';
 
-    private EntityManagerInterface $entityManager;
-    private LoggerInterface $logger;
-
-    public function __construct(EntityManagerInterface $entityManager, LoggerInterface $logger)
-    {
+    public function __construct(
+        private readonly LoggerInterface $logger,
+        private readonly PaymentRepository $paymentRepository,
+    ) {
         parent::__construct();
-        $this->entityManager = $entityManager;
-        $this->logger = $logger;
     }
 
     protected function configure(): void
@@ -34,27 +31,21 @@ final class PaymentReportCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        // Try catch ?
-        $date = $input->getArgument('date');
-        $this->logger->info("Generating report for date", ['date' => $date]);
+        $dateArg = $input->getArgument('date');
+        $this->logger->info("Generating report", ['date' => $dateArg]);
 
-        if (!\DateTime::createFromFormat('Y-m-d', $date)) {
-            $this->logger->error("Invalid date format", ['date' => $date]);
+        $date = DateUtil::parseDate($input->getArgument('date'));
+
+        if (!$date) {
+            $this->logger->error("Invalid date format", ['date' => $dateArg]);
             $output->writeln('<error>Invalid date format. Use YYYY-MM-DD.</error>');
             return Command::FAILURE;
         }
 
-        $startDate = new \DateTime($date . ' 00:00:00');
-        $endDate = new \DateTime($date . ' 23:59:59');
+        $start = $date->setTime(0, 0, 0);
+        $end = $date->setTime(23, 59, 59);
 
-        $payments = $this->entityManager->createQueryBuilder()
-            ->select('p')
-            ->from(Payment::class, 'p')
-            ->where('p.paymentDate BETWEEN :startDate AND :endDate')
-            ->setParameter('startDate', $startDate)
-            ->setParameter('endDate', $endDate)
-            ->getQuery()
-            ->getResult();
+        $payments = $this->paymentRepository->fetchBetweenDates($start, $end);
 
         if (empty($payments)) {
             $this->logger->info("No payments found for date", ['date' => $date]);
@@ -62,7 +53,7 @@ final class PaymentReportCommand extends Command
             return Command::SUCCESS;
         }
 
-        $output->writeln("<info>Payments for date: $date</info>");
+        $output->writeln("<info>Payments for date: $dateArg</info>");
         foreach ($payments as $payment) {
             $output->writeln(sprintf(
                 "ID: %d, Amount: %s, Description: %s, Ref ID: %s",

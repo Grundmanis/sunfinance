@@ -15,4 +15,17 @@ class PaymentRepository extends EntityRepository
             ->getQuery()
             ->getSingleScalarResult();
     }
+
+    public function fetchBetweenDates(
+        \DateTimeInterface $startDate,
+        \DateTimeInterface $endDate
+    ) {
+        return $this->createQueryBuilder('p')
+            ->select('p')
+            ->where('p.paymentDate BETWEEN :startDate AND :endDate')
+            ->setParameter('startDate', $startDate)
+            ->setParameter('endDate', $endDate)
+            ->getQuery()
+            ->getResult();
+    }
 }
